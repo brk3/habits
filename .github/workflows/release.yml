@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'               # Triggers on tags like v0.0.1
+  workflow_dispatch:       # Optional manual trigger
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+
+    - name: Build binaries
+      run: |
+        mkdir -p dist
+        GOOS=linux GOARCH=amd64 go build -o dist/habits-linux main.go
+        GOOS=darwin GOARCH=arm64 go build -o dist/habits-macos main.go
+        GOOS=windows GOARCH=amd64 go build -o dist/habits.exe main.go
+
+    - name: Upload release assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/habits-linux
+          dist/habits-macos
+          dist/habits.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
