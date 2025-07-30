@@ -1,5 +1,7 @@
 # habits
 
+[![Build Status](https://github.com/brk3/habits/actions/workflows/test.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/test.yml)
+
 A simple command-line tool for tracking habits, built in Go using [Cobra](https://github.com/spf13/cobra).
 
 ## Features
