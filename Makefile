@@ -1,17 +1,13 @@
 .PHONY: all build test fmt vet lint clean
 
-# Run everything
 all: fmt vet lint test build
 
-# Build the binary
 build:
 	go build -o bin/habits main.go
 
-# Run tests
 test:
 	go test ./...
 
-# Format code
 fmt:
 	go fmt ./...
 
@@ -23,6 +19,5 @@ vet:
 lint:
 	golint ./... || true
 
-# Clean build artifacts
 clean:
 	rm -rf bin
