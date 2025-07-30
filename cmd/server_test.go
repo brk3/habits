@@ -35,13 +35,11 @@ func TestThoughtEndpoint(t *testing.T) {
 		json.NewEncoder(w).Encode(h)
 	})
 
-	// Prepare request
 	body := []byte(`{"content":"test from server"}`)
 	req := httptest.NewRequest("POST", "/thought", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 
-	// Perform request
 	router.ServeHTTP(resp, req)
 
 	if resp.Code != http.StatusOK {
