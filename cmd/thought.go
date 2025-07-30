@@ -12,7 +12,6 @@ type Thought struct {
 	TimeStamp time.Time `json:"TimeStamp"`
 }
 
-// thoughtCmd represents the thought command
 var thoughtCmd = &cobra.Command{
 	Use:   "thought",
 	Short: "A brief description of your command",
@@ -29,16 +28,6 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(thoughtCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// thoughtCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// thoughtCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 func thought(content string, cmd *cobra.Command) {
