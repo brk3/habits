@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -23,7 +22,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		track(args[0])
+		track(args[0], cmd)
 	},
 }
 
@@ -41,11 +40,11 @@ func init() {
 	// trackCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func track(content string) {
+func track(content string, cmd *cobra.Command) {
 	h := &Habit{
 		Content:   content,
 		TimeStamp: "00:00:00",
 	}
 	habitJson, _ := json.Marshal(h)
-	fmt.Println(string(habitJson))
+	cmd.Println(string(habitJson))
 }

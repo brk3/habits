@@ -1,0 +1,47 @@
+# Binaries
+/bin/
+/*.exe
+/*.exe~
+/*.dll
+/*.so
+/*.dylib
+/*.test
+
+# Output of `go build`
+*.out
+
+# Go workspace files
+*.mod
+*.sum
+
+# Test coverage and logs
+*.coverprofile
+*.test
+*.log
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Dependency directories (if vendoring is used)
+vendor/
+
+# Go build cache (only if you're not using modules)
+pkg/
+
+# Makefile build artifacts
+*.o
+
+# Your custom bin directory
+bin/
+
+# Specific to your project
+*.local.json
