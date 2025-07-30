@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
 )
 
-type habit struct {
+type Habit struct {
 	Content   string
 	TimeStamp string
 }
@@ -40,12 +41,12 @@ func init() {
 	// logCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func log(habit string) {
+func log(content string) {
 	fmt.Println("log called!")
-	fmt.Println(habit)
-	//res1D := &response1{
-	//	Page:   1,
-	//	Fruits: []string{"apple", "peach", "pear"}}
-	//res1B, _ := json.Marshal(res1D)
-	//fmt.Println(string(res1B))
+	h := &Habit{
+		Content:   content,
+		TimeStamp: "00:00:00",
+	}
+	habitJson, _ := json.Marshal(h)
+	fmt.Println(string(habitJson))
 }
