@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
-	"strings"
 	"testing"
 )
 
@@ -32,7 +31,7 @@ func TestTrackCommand_Output(t *testing.T) {
 	if h.Content != "drink water" {
 		t.Errorf("Expected content to be 'drink water', got '%s'", h.Content)
 	}
-	if strings.TrimSpace(h.TimeStamp) == "" {
+	if h.TimeStamp.IsZero() {
 		t.Errorf("Expected a timestamp value, got empty string")
 	}
 }

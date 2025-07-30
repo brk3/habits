@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
 type Habit struct {
-	Content   string
-	TimeStamp string
+	Content   string    `json:"Content"`
+	TimeStamp time.Time `json:"TimeStamp"`
 }
 
 // trackCmd represents the track command
@@ -43,7 +44,7 @@ func init() {
 func track(content string, cmd *cobra.Command) {
 	h := &Habit{
 		Content:   content,
-		TimeStamp: "00:00:00",
+		TimeStamp: time.Now(),
 	}
 	habitJson, _ := json.Marshal(h)
 	cmd.Println(string(habitJson))
