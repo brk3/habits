@@ -51,7 +51,7 @@ func track(name string, note string, cmd *cobra.Command) {
 	}
 	habitJson, _ := json.Marshal(h)
 
-	resp, err := http.Post("http://localhost:8080/track", "application/json",
+	resp, err := http.Post("http://localhost:8080/habits", "application/json",
 		bytes.NewReader(habitJson))
 	if err != nil {
 		cmd.Println("Error saving habit:", err)
