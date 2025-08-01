@@ -15,9 +15,5 @@ fmt:
 vet:
 	go vet ./...
 
-# Basic linter using 'go install golang.org/x/lint/golint@latest'
-lint:
-	golint ./... || true
-
 clean:
 	rm -rf bin
