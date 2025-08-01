@@ -1,24 +1,15 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-	"go.etcd.io/bbolt"
-	bolt "go.etcd.io/bbolt"
 )
-
-type Habit struct {
-	Name      string    `json:"Name"`
-	Note      string    `json:"Note"`
-	TimeStamp time.Time `json:"TimeStamp"`
-}
-
-var db *bbolt.DB
-var bucketName = "habits"
 
 var trackCmd = &cobra.Command{
 	Use:   "track",
@@ -48,10 +39,6 @@ This will store the habit along with the current timestamp.`,
 	},
 }
 
-func InitDB(d *bbolt.DB) {
-	db = d
-}
-
 func init() {
 	rootCmd.AddCommand(trackCmd)
 }
@@ -64,15 +51,11 @@ func track(name string, note string, cmd *cobra.Command) {
 	}
 	habitJson, _ := json.Marshal(h)
 
-	err := db.Update(func(tx *bolt.Tx) error {
-		b, err := tx.CreateBucketIfNotExists([]byte(bucketName))
-		if err != nil {
-			return err
-		}
-		key := name + "/" + h.TimeStamp.Format(time.RFC3339)
-		return b.Put([]byte(key), habitJson)
-	})
+	resp, err := http.Post("http://localhost:8080/track", "application/json",
+		bytes.NewReader(habitJson))
 	if err != nil {
 		cmd.Println("Error saving habit:", err)
+	} else {
+		cmd.Println(resp)
 	}
 }
