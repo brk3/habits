@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -69,16 +70,22 @@ func startServer(cmd *cobra.Command) {
 
 func ListHabits(w http.ResponseWriter, r *http.Request) {
 	h := HabitListResponse{}
+	uniqueHabits := make(map[string]struct{})
 
 	db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
 
 		b.ForEach(func(k, v []byte) error {
-			h.Habits = append(h.Habits, string(k))
+			sanitised := strings.Split(string(k), "/")[0]
+			uniqueHabits[sanitised] = struct{}{}
 			return nil
 		})
 		return nil
 	})
+
+	for habit := range uniqueHabits {
+		h.Habits = append(h.Habits, habit)
+	}
 
 	habitJSON, err := json.Marshal(h)
 	if err != nil {
