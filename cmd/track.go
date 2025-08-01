@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -55,7 +56,14 @@ func track(name string, note string, cmd *cobra.Command) {
 		bytes.NewReader(habitJson))
 	if err != nil {
 		cmd.Println("Error saving habit:", err)
-	} else {
-		cmd.Println(resp)
+		return
 	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		cmd.Println("Error reading response:", err)
+		return
+	}
+	cmd.Println(string(body))
 }
