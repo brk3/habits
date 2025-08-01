@@ -45,3 +45,5 @@ bin/
 
 # Specific to your project
 *.local.json
+
+*.db
