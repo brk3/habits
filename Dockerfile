@@ -1,4 +1,5 @@
 FROM gcr.io/distroless/static:nonroot
 
-COPY habits /habits
+ARG BIN=dist/habits-linux-arm64
+COPY ${BIN} /habits
 ENTRYPOINT ["/habits"]
