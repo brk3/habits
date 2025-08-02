@@ -12,8 +12,15 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-var bucketName = "habits"
-var db *bbolt.DB
+var (
+	bucketName = "habits"
+	db         *bbolt.DB
+)
+
+var (
+	Version   = "dev"
+	BuildDate = "unknown"
+)
 
 type Habit struct {
 	Name      string    `json:"Name"`
@@ -23,6 +30,11 @@ type Habit struct {
 
 type HabitListResponse struct {
 	Habits []string `json:"Habits"`
+}
+
+type VersionInfo struct {
+	Version   string `json:"Version"`
+	BuildDate string `json:"BuildDate"`
 }
 
 var serverCmd = &cobra.Command{
@@ -64,8 +76,29 @@ func startServer(cmd *cobra.Command) {
 		r.Get("/", ListHabits)
 	})
 
+	r.Route("/version", func(r chi.Router) {
+		r.Get("/", GetVersionInfo)
+	})
+
 	cmd.Println("listening on localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
+}
+
+func GetVersionInfo(w http.ResponseWriter, r *http.Request) {
+	info := VersionInfo{
+		Version:   Version,
+		BuildDate: BuildDate,
+	}
+
+	infoJSON, err := json.Marshal(info)
+	if err != nil {
+		http.Error(w, `{"error":"failed to serialize version info"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(infoJSON)
 }
 
 func ListHabits(w http.ResponseWriter, r *http.Request) {

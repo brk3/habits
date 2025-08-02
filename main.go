@@ -1,7 +1,7 @@
 package main
 
 import (
-	"brk3.github.io/cmd"
+	"brk3.github.io/habits/cmd"
 )
 
 func main() {

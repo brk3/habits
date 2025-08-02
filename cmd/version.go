@@ -1,0 +1,40 @@
+package cmd
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/spf13/cobra"
+)
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Show version information",
+	Long: `The "version" command displays the current version info for both client
+and server if available.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		version(cmd)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(versionCmd)
+}
+
+func version(cmd *cobra.Command) {
+	resp, err := http.Get("http://localhost:8080/version")
+	if err != nil {
+		cmd.Println("Error fetching server version:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	serverVersion := &VersionInfo{}
+	if err := json.NewDecoder(resp.Body).Decode(serverVersion); err != nil {
+		cmd.Println("Error decoding version response:", err)
+		return
+	}
+
+	cmd.Printf("Server Version: %s\n", serverVersion.Version)
+	cmd.Printf("Client Version: %s\n", Version)
+}

@@ -3,7 +3,8 @@
 * Server logging
 * Streaks
 * Tests
-* /version endpoint
+* Basic config file for common params
 
 # DONE
 * Build / auto deploy server to raspberry pi
+* /version endpoint
