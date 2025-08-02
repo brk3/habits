@@ -3,11 +3,12 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'               # Triggers on tags like v0.0.1
-  workflow_dispatch:       # Optional manual trigger
+      - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build-and-release:
@@ -26,6 +27,7 @@ jobs:
       run: |
         mkdir -p dist
         GOOS=linux GOARCH=amd64 go build -o dist/habits-linux main.go
+        GOOS=linux GOARCH=arm64 go build -o dist/habits-linux-arm64 main.go
         GOOS=darwin GOARCH=arm64 go build -o dist/habits-macos main.go
         GOOS=windows GOARCH=amd64 go build -o dist/habits.exe main.go
 
@@ -34,7 +36,27 @@ jobs:
       with:
         files: |
           dist/habits-linux
+          dist/habits-linux-arm64
           dist/habits-macos
           dist/habits.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push Docker multi-arch image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}:${{ github.ref_name }}
