@@ -1,5 +1,9 @@
+# TODO
 * Nicer output from cli
 * Server logging
 * Streaks
 * Tests
+* /version endpoint
+
+# DONE
 * Build / auto deploy server to raspberry pi
