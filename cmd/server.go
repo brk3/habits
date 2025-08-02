@@ -65,6 +65,10 @@ func initDB() {
 	})
 }
 
+func InjectDB(d *bbolt.DB) {
+	db = d
+}
+
 func startServer(cmd *cobra.Command) {
 	initDB()
 	defer db.Close()
