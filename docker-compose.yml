@@ -1,0 +1,20 @@
+services:
+  app:
+    image: ghcr.io/brk3/habits:latest
+    container_name: habits-server
+    restart: unless-stopped
+    command: server
+    # environment:
+    #   - ENV=production
+    # volumes:
+    #   - ./data:/data
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=1800
+      - WATCHTOWER_CLEANUP=true
