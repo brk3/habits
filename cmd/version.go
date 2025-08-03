@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"brk3.github.io/habits/pkg/habit"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +30,7 @@ func version(cmd *cobra.Command) {
 	}
 	defer resp.Body.Close()
 
-	serverVersion := &VersionInfo{}
+	serverVersion := &habit.VersionInfo{}
 	if err := json.NewDecoder(resp.Body).Decode(serverVersion); err != nil {
 		cmd.Println("Error decoding version response:", err)
 		return

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"brk3.github.io/habits/pkg/habit"
 	"github.com/spf13/cobra"
 )
 
@@ -45,7 +46,7 @@ func init() {
 }
 
 func track(name string, note string, cmd *cobra.Command) {
-	h := &Habit{
+	h := &habit.Habit{
 		Name:      name,
 		Note:      note,
 		TimeStamp: time.Now(),
