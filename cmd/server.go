@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/spf13/cobra"
 	"go.etcd.io/bbolt"
 )
@@ -41,7 +43,7 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start the HTTP server",
 	Run: func(cmd *cobra.Command, args []string) {
-		startServer(cmd)
+		startServer()
 	},
 }
 
@@ -50,30 +52,48 @@ func init() {
 }
 
 func initDB() {
+	log.Println("Opening DB...")
 	var err error
 	db, err = bbolt.Open("habits.db", 0600, nil)
 	if err != nil {
 		log.Fatalf("failed to open db: %v", err)
 	}
 
-	db.Update(func(tx *bbolt.Tx) error {
+	log.Println("Creating bucket if needed...")
+	err = db.Update(func(tx *bbolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
-		if err != nil {
-			log.Fatalf("failed to create db bucket: %v", err)
-		}
-		return nil
+		return err
 	})
+	if err != nil {
+		log.Fatalf("failed to create db bucket: %v", err)
+	}
 }
 
 func InjectDB(d *bbolt.DB) {
 	db = d
 }
 
-func startServer(cmd *cobra.Command) {
+func startServer() {
+	log.Println("Starting server...")
 	initDB()
 	defer db.Close()
 
 	r := chi.NewRouter()
+
+	// Basic CORS
+	// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
+	r.Use(cors.Handler(cors.Options{
+		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
+		AllowedOrigins: []string{"https://*", "http://*"},
+		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
+
+	r.Use(middleware.Logger)
 
 	r.Route("/habits", func(r chi.Router) {
 		r.Post("/", TrackHabit)
@@ -84,8 +104,10 @@ func startServer(cmd *cobra.Command) {
 		r.Get("/", GetVersionInfo)
 	})
 
-	cmd.Println("listening on localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	err := http.ListenAndServe(":8080", r)
+	if err != nil {
+		log.Printf("server error: %v", err)
+	}
 }
 
 func GetVersionInfo(w http.ResponseWriter, r *http.Request) {
