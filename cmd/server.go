@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -98,6 +99,7 @@ func startServer() {
 	r.Route("/habits", func(r chi.Router) {
 		r.Post("/", TrackHabit)
 		r.Get("/", ListHabits)
+		r.Get("/{habit_id}", GetHabit) // Add this line
 	})
 
 	r.Route("/version", func(r chi.Router) {
@@ -188,4 +190,49 @@ func TrackHabit(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(habitJSON)
+}
+
+func GetHabit(w http.ResponseWriter, r *http.Request) {
+	habitID := chi.URLParam(r, "habit_id")
+	if habitID == "" {
+		http.Error(w, `{"error":"habit id is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	var entries []Habit
+	err := db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		c := b.Cursor()
+
+		prefix := []byte(habitID + "/")
+		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
+			var habit Habit
+			if err := json.Unmarshal(v, &habit); err != nil {
+				return err
+			}
+			entries = append(entries, habit)
+		}
+		return nil
+	})
+
+	if err != nil {
+		http.Error(w, `{"error":"failed to read habits"}`, http.StatusInternalServerError)
+		return
+	}
+
+	if len(entries) == 0 {
+		http.Error(w, `{"error":"habit not found"}`, http.StatusNotFound)
+		return
+	}
+
+	response := map[string]interface{}{
+		"habit_id": habitID,
+		"entries":  entries,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
+		return
+	}
 }
