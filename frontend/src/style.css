@@ -1,0 +1,10 @@
+body {
+  font-family: sans-serif;
+  padding: 2rem;
+  background: #f9f9f9;
+}
+
+#heatmap {
+  max-width: 900px;
+  margin-top: 2rem;
+}

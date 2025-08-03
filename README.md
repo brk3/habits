@@ -18,3 +18,11 @@ A simple command-line tool for tracking thoughts & habits, built in Go using [Co
 git clone https://github.com/brk3/habits.git
 cd habits
 make build
+```
+
+### Frontend
+```
+npm install
+npm run dev
+```
+
