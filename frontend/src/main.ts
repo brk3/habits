@@ -1,8 +1,10 @@
 //import './style.css'
+// @ts-expect-error: No type definitions for 'cal-heatmap'
 import CalHeatmap from 'cal-heatmap';
 import 'cal-heatmap/cal-heatmap.css';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+  <div id="title"></div>
   <div id="cal-heatmap"></div>
 `;
 
@@ -77,9 +79,10 @@ async function drawHabitHeatmap(habit: string) {
   });
 }
 
-drawHabitHeatmap("guitar");
+function toTitleCase(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
-//const cal: CalHeatmap = new CalHeatmap();
-//cal.paint({
-//  itemSelector: "#cal-heatmap"
-//});
+const habit = "guitar";
+document.querySelector<HTMLDivElement>('#title')!.innerHTML = `<h1>${toTitleCase(habit)}</h1>`;
+drawHabitHeatmap(habit);
