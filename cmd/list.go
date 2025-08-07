@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/brk3/habits/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +22,8 @@ func init() {
 }
 
 func list(cmd *cobra.Command) {
-	resp, err := http.Get("http://localhost:8080/habits")
+	cfg := config.Load()
+	resp, err := http.Get(cfg.APIBaseURL + "/habits")
 	if err != nil {
 		cmd.Println("Error fetching habits:", err)
 		return

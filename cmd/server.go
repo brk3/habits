@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/brk3/habits/internal/config"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -54,13 +56,13 @@ func init() {
 
 func initDB() {
 	log.Println("Opening DB...")
+	cfg := config.Load()
 	var err error
-	db, err = bbolt.Open("habits.db", 0600, nil)
+	db, err = bbolt.Open(cfg.DBPath, 0600, nil)
 	if err != nil {
 		log.Fatalf("failed to open db: %v", err)
 	}
 
-	log.Println("Creating bucket if needed...")
 	err = db.Update(func(tx *bbolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
 		return err
