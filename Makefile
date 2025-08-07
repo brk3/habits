@@ -2,10 +2,9 @@ APP_NAME := habits
 VERSION  ?= $(shell git describe --tags --dirty --always)
 BUILD    ?= $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 LDFLAGS  := -X 'brk3.github.io/habits/cmd.Version=$(VERSION)' -X 'brk3.github.io/habits/cmd.BuildDate=$(BUILD)'
-
 BIN_DIR  := bin
 
-.PHONY: all build test fmt vet lint clean
+.PHONY: all build test fmt vet lint clean server
 
 all: fmt vet lint test build
 
@@ -40,3 +39,6 @@ vet:
 
 lint:
 	staticcheck ./...
+
+server:
+	go run main.go server
