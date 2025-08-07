@@ -7,7 +7,10 @@ services:
     environment:
       - HABITS_DB_PATH=/data/habits.db
     volumes:
-      - ~/habits.db:/habits.db
+      # Note: due to rootless container, run:
+      # chown -R 65532:65532 ~/habits_db/
+      # chmod 775 ~/habits_db/
+      - ~/habits_db:/data
 
   habits-frontend:
     image: ghcr.io/brk3/habits-frontend:latest
