@@ -9,9 +9,13 @@
 
 	# --- SPA static files + fallback ---
 	root * /usr/share/caddy
+
 	@notFile {
-		file { try_files {path} }
+		file {
+			try_files {path}
+		}
 	}
 	rewrite @notFile /index.html
+
 	file_server
 }
