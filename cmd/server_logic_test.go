@@ -14,7 +14,7 @@ func TestTrackHabit_EmptyName(t *testing.T) {
 	h := &cmd.Habit{
 		Name:      "",
 		Note:      "note",
-		TimeStamp: time.Now(),
+		TimeStamp: time.Now().Unix(),
 	}
 	data, _ := json.Marshal(h)
 	req := httptest.NewRequest("POST", "/habits", bytes.NewReader(data))

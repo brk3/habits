@@ -48,7 +48,7 @@ func track(name string, note string, cmd *cobra.Command) {
 	h := &Habit{
 		Name:      name,
 		Note:      note,
-		TimeStamp: time.Now(),
+		TimeStamp: time.Now().Unix(),
 	}
 	habitJson, _ := json.Marshal(h)
 

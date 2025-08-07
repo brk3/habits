@@ -66,7 +66,7 @@ func TestTrackHabit(t *testing.T) {
 	habit := cmd.Habit{
 		Name:      "guitar",
 		Note:      "practice",
-		TimeStamp: time.Now(),
+		TimeStamp: time.Now().Unix(),
 	}
 	body, _ := json.Marshal(habit)
 

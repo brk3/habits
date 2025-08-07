@@ -26,9 +26,9 @@ var (
 )
 
 type Habit struct {
-	Name      string    `json:"Name"`
-	Note      string    `json:"Note"`
-	TimeStamp time.Time `json:"TimeStamp"`
+	Name      string `json:"Name"`
+	Note      string `json:"Note"`
+	TimeStamp int64  `json:"TimeStamp"`
 }
 
 type HabitListResponse struct {
@@ -99,7 +99,7 @@ func startServer() {
 	r.Route("/habits", func(r chi.Router) {
 		r.Post("/", TrackHabit)
 		r.Get("/", ListHabits)
-		r.Get("/{habit_id}", GetHabit) // Add this line
+		r.Get("/{habit_id}", GetHabit)
 	})
 
 	r.Route("/version", func(r chi.Router) {
