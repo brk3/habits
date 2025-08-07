@@ -1,4 +1,4 @@
-//import './style.css'
+import './style.css'
 // @ts-expect-error: No type definitions for 'cal-heatmap'
 import CalHeatmap from 'cal-heatmap';
 import 'cal-heatmap/cal-heatmap.css';
@@ -59,7 +59,6 @@ async function drawHabitHeatmap(habit: string) {
       radius: 2,
       width: 15,
       height: 15,
-      gutter: 5,
     },
     date: {
       start: new Date(earliest),
@@ -83,6 +82,19 @@ function toTitleCase(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-const habit = "guitar";
-document.querySelector<HTMLDivElement>('#title')!.innerHTML = `<h1>${toTitleCase(habit)}</h1>`;
-drawHabitHeatmap(habit);
+function getHabitFromURL(): string | null {
+  const parts = window.location.pathname.split('/');
+  console.log("URL parts:", parts);
+  if (parts.length >= 3 && parts[1] === "habits") {
+    return parts[2];
+  }
+  return null;
+}
+
+const habit = getHabitFromURL();
+if (!habit) {
+  console.error("No habit found in URL");
+} else {
+  document.querySelector<HTMLHeadingElement>('#title')!.innerHTML = `<h1>${toTitleCase(habit)}</h1>`;
+  drawHabitHeatmap(habit);
+}
