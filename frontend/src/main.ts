@@ -16,7 +16,7 @@ type HeatmapDatum = {
 
 async function fetchHabitData(habit: string): Promise<HeatmapDatum[]> {
   console.log(`Fetching data for habit: ${habit}`);
-  const res = await fetch(`api/habits/${habit}`);
+  const res = await fetch(`/api/habits/${habit}`);
   const json = await res.json();
   console.log("Fetched data:", json);
 
