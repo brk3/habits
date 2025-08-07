@@ -5,10 +5,6 @@
 [![Docker Build](https://github.com/brk3/habits/actions/workflows/docker-latest.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/docker.yml)
 [![Frontend Build](https://github.com/brk3/habits/actions/workflows/frontend-docker-latest.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/frontend.yml)
 
-A simple command-line tool and lightweight web UI for tracking thoughts & habits, built in Go with a Vite + TypeScript frontend.
-
----
-
 ## Quickstart
 ```bash
 # Build the project
