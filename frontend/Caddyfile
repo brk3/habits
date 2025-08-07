@@ -1,18 +1,16 @@
 :80 {
-	# --- API proxy ---
-	handle_path /habits/* {
-		reverse_proxy habits-server:8080
-	}
-	handle_path /version/* {
+	# --- API under /api/*
+	handle_path /api/* {
 		reverse_proxy habits-server:8080
 	}
 
 	# --- SPA static files + fallback ---
 	root * /usr/share/caddy
+	encode zstd gzip
 
 	@notFile {
-		file {
-			try_files {path}
+		not file {
+      try_files {path}
 		}
 	}
 	rewrite @notFile /index.html
