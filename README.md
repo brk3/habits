@@ -3,7 +3,7 @@
 [![Build Status](https://github.com/brk3/habits/actions/workflows/test.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/test.yml)
 ![Release](https://github.com/brk3/habits/actions/workflows/release.yml/badge.svg)
 
-A simple command-line tool for tracking thoughts & habits, built in Go using [Cobra](https://github.com/spf13/cobra).
+A simple command-line tool for tracking thoughts & habits, built in Go.
 
 ## Getting Started
 
@@ -25,4 +25,3 @@ make build
 npm install
 npm run dev
 ```
-
