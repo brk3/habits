@@ -1,7 +1,7 @@
 package cmd_test
 
 import (
-	"brk3.github.io/habits/cmd"
+	"github.com/brk3/habits/cmd"
 	"io"
 	"net/http/httptest"
 	"strings"

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"brk3.github.io/habits/cmd"
+	"github.com/brk3/habits/cmd"
 	"go.etcd.io/bbolt"
 )
 

@@ -1,4 +1,4 @@
-module brk3.github.io/habits
+module github.com/brk3/habits
 
 go 1.23
 
