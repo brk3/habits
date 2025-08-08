@@ -19,21 +19,5 @@ jobs:
       with:
         go-version: '1.23'
 
-    - name: Debug Go module context
-      run: |
-        echo "pwd:"; pwd
-        echo "repo root:"; git rev-parse --show-toplevel
-        echo "GOMOD=$(go env GOMOD)"
-        echo "GOWORK=$(go env GOWORK)"
-        echo "GO111MODULE=$(go env GO111MODULE)"
-        echo "Tree:"
-        ls -la
-        echo "pkg contents:"
-        ls -la pkg || true
-        echo "go.mod contents:"
-        cat go.mod
-        echo "go list ./...:"
-        go list ./... || true
-
     - name: Run tests
       run: make test
