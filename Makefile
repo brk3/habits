@@ -1,7 +1,7 @@
 APP_NAME := habits
 VERSION  ?= $(shell git describe --tags --dirty --always)
 BUILD    ?= $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
-LDFLAGS  := -X 'github.com/brk3/habits/cmd.Version=$(VERSION)' -X 'github.com/brk3/habits/cmd.BuildDate=$(BUILD)'
+LDFLAGS  := -X 'github.com/brk3/habits/pkg/versioninfo.Version=$(VERSION)' -X 'github.com/brk3/habits/pkg/versioninfo.BuildDate=$(BUILD)'
 BIN_DIR  := bin
 
 .PHONY: all build test fmt vet lint clean server
