@@ -3,11 +3,11 @@
 - [ ] Better logging
 - [ ] Streaks
 - [ ] More tests
-- [ ] Basic config file for common params
-- [ ] Web UI
-- [ ] Separate server logic from cmd package
-- [ ] Build / auto deploy server to raspberry pi
-- [ ] /version endpoint
+- [X] Basic config file for common params
+- [X] Web UI
+- [X] Separate server logic from cmd package
+- [X] Build / auto deploy server to raspberry pi
+- [] /version endpoint
 - [ ] Prometheus metrics
 - [ ] DB backups
 - [ ] Basic auth
