@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/brk3/habits/internal/config"
+	"github.com/brk3/habits/pkg/habit"
 	"github.com/spf13/cobra"
 )
 
@@ -41,12 +42,8 @@ This will store the habit along with the current timestamp.`,
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(trackCmd)
-}
-
 func track(name string, note string, cmd *cobra.Command) {
-	h := &Habit{
+	h := &habit.Habit{
 		Name:      name,
 		Note:      note,
 		TimeStamp: time.Now().Unix(),
@@ -67,5 +64,10 @@ func track(name string, note string, cmd *cobra.Command) {
 		cmd.Println("Error reading response:", err)
 		return
 	}
+
 	cmd.Println(string(body))
+}
+
+func init() {
+	rootCmd.AddCommand(trackCmd)
 }

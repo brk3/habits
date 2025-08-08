@@ -17,12 +17,12 @@ type HeatmapDatum = {
 async function fetchHabitData(habit: string): Promise<HeatmapDatum[]> {
   console.log(`Fetching data for habit: ${habit}`);
   const res = await fetch(`/api/habits/${habit}`);
+  console.log("Response status:", res);
   const json = await res.json();
-  console.log("Fetched data:", json);
 
   const counts: Record<number, number> = {};
   for (const entry of json.entries) {
-    const timestamp = entry.TimeStamp * 1000; // Convert to milliseconds
+    const timestamp = entry.timestamp * 1000; // Convert to milliseconds
     counts[timestamp] = (counts[timestamp] || 0) + 1;
   }
   

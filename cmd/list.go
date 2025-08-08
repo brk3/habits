@@ -17,12 +17,9 @@ var listCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(listCmd)
-}
-
 func list(cmd *cobra.Command) {
 	cfg := config.Load()
+
 	resp, err := http.Get(cfg.APIBaseURL + "/habits")
 	if err != nil {
 		cmd.Println("Error fetching habits:", err)
@@ -37,4 +34,8 @@ func list(cmd *cobra.Command) {
 	}
 
 	cmd.Println(string(body))
+}
+
+func init() {
+	rootCmd.AddCommand(listCmd)
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/brk3/habits/internal/config"
+	"github.com/brk3/habits/pkg/versioninfo"
 	"github.com/spf13/cobra"
 )
 
@@ -18,10 +19,6 @@ and server if available.`,
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(versionCmd)
-}
-
 func version(cmd *cobra.Command) {
 	cfg := config.Load()
 	resp, err := http.Get(cfg.APIBaseURL + "/version")
@@ -31,12 +28,16 @@ func version(cmd *cobra.Command) {
 	}
 	defer resp.Body.Close()
 
-	serverVersion := &VersionInfo{}
+	serverVersion := &versioninfo.VersionInfo{}
 	if err := json.NewDecoder(resp.Body).Decode(serverVersion); err != nil {
 		cmd.Println("Error decoding version response:", err)
 		return
 	}
 
 	cmd.Printf("Server Version: %s\n", serverVersion.Version)
-	cmd.Printf("Client Version: %s\n", Version)
+	cmd.Printf("Client Version: %s\n", versioninfo.Version)
+}
+
+func init() {
+	rootCmd.AddCommand(versionCmd)
 }
