@@ -7,7 +7,7 @@
 - [X] Web UI
 - [X] Separate server logic from cmd package
 - [X] Build / auto deploy server to raspberry pi
-- [] /version endpoint
+- [X] /version endpoint
 - [ ] Prometheus metrics
 - [ ] DB backups
 - [ ] Basic auth
