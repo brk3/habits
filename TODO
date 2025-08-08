@@ -1,12 +1,14 @@
 # TODO
-* Nicer output from cli
-* Server logging
-* Streaks
-* Tests
-* Basic config file for common params
-* Web UI
-* Separate server logic from cmd package
-
-# DONE
-* Build / auto deploy server to raspberry pi
-* /version endpoint
+- [ ] Nicer output from cli
+- [ ] Better logging
+- [ ] Streaks
+- [ ] More tests
+- [ ] Basic config file for common params
+- [ ] Web UI
+- [ ] Separate server logic from cmd package
+- [ ] Build / auto deploy server to raspberry pi
+- [ ] /version endpoint
+- [ ] Prometheus metrics
+- [ ] DB backups
+- [ ] Basic auth
+- [ ] Heatmap styling
