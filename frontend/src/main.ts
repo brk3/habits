@@ -71,8 +71,8 @@ async function drawHabitHeatmap(habit: string) {
     },
     scale: {
       color: {
-        scheme: 'YlGn',
-        domain: [0, 5],
+        range: ['#e5e7eb', '#22c55e'], // missed, done
+        domain: [0, 1],
       },
     },
   });
