@@ -26,6 +26,11 @@ type HabitGetResponse struct {
 	Entries []habit.Habit `json:"entries"`
 }
 
+// TODO(pbourke): integrate this with the CLI
+//type VersionInfoResponse struct {
+//	VersionInfo versioninfo.VersionInfo `json:"version_info"`
+//}
+
 func New(store storage.Store) *Server {
 	return &Server{Store: store}
 }

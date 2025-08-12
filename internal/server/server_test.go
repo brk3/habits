@@ -11,7 +11,31 @@ import (
 
 	"github.com/brk3/habits/internal/storage"
 	"github.com/brk3/habits/pkg/habit"
+	"github.com/brk3/habits/pkg/versioninfo"
 )
+
+func TestGetVersionInfo(t *testing.T) {
+	st := newMemStore()
+	h := newTestServer(st)
+
+	rr := mockRequest(h, http.MethodGet, "/version", nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got %d want 200 OK", rr.Code)
+	}
+
+	var resp versioninfo.VersionInfo
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+
+	log.Printf("response: %+v", resp)
+	if resp.Version != versioninfo.Version {
+		t.Fatalf("got version %s, want %s", resp.Version, versioninfo.Version)
+	}
+	if resp.BuildDate != versioninfo.BuildDate {
+		t.Fatalf("got build date %s, want %s", resp.BuildDate, versioninfo.BuildDate)
+	}
+}
 
 func TestTrackHabit_Valid(t *testing.T) {
 	st := newMemStore()

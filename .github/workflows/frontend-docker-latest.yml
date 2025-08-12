@@ -14,6 +14,7 @@ jobs:
   check-web-changes:
     runs-on: ubuntu-latest
     outputs:
+      # NOTE(pbourke): vscode false positive warning: https://github.com/github/vscode-github-actions/issues/222
       web_changed: ${{ steps.filter.outputs.web }}
     steps:
       - name: Checkout

@@ -41,7 +41,7 @@ func (s *Store) Close() error {
 
 func (s *Store) Put(h habit.Habit) error {
 	val, _ := json.Marshal(h)
-	key := []byte(fmt.Sprintf("%s/%s", h.Name, time.Unix(h.TimeStamp, 0).Format(time.RFC3339)))
+	key := fmt.Appendf(nil, "%s/%s", h.Name, time.Unix(h.TimeStamp, 0).Format(time.RFC3339))
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		return tx.Bucket(s.bucket).Put(key, val)
 	})
