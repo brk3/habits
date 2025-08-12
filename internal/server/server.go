@@ -21,6 +21,11 @@ type HabitListResponse struct {
 	Habits []string `json:"habits"`
 }
 
+type HabitGetResponse struct {
+	HabitID string        `json:"habit_id"`
+	Entries []habit.Habit `json:"entries"`
+}
+
 func New(store storage.Store) *Server {
 	return &Server{Store: store}
 }
@@ -109,9 +114,12 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO(pbourke): define response structure
-	writeJSON(w, http.StatusOK, map[string]any{
-		"habit_id": id,
-		"entries":  entries,
-	})
+	h := HabitGetResponse{
+		HabitID: id,
+		Entries: entries,
+	}
+	if err := writeJSON(w, http.StatusOK, h); err != nil {
+		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
+		return
+	}
 }

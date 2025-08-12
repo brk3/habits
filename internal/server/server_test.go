@@ -3,14 +3,16 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/brk3/habits/internal/storage"
+	"github.com/brk3/habits/pkg/habit"
 )
 
-/*
 func TestTrackHabit_Valid(t *testing.T) {
 	st := newMemStore()
 	h := newTestServer(st)
@@ -25,30 +27,27 @@ func TestTrackHabit_Valid(t *testing.T) {
 		t.Fatalf("got %d want 201", rr.Code)
 	}
 
-	// TODO(pbourke): fix here... we're unmarshalling into a habit but its a list of entries
-	// looks like we need a HabitListResponse type - can also use this to extend cli cmd
 	rr = mockRequest(h, http.MethodGet, "/habits/guitar", nil)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("got %d want 200 OK", rr.Code)
 	}
 	log.Printf("response body: %s", rr.Body.String())
-	var resp habit.Habit
+	var resp HabitGetResponse
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("unmarshal error: %v", err)
 	}
 
 	log.Printf("response: %+v", resp)
-	if resp.Name != "guitar" {
-		t.Fatalf("got '%s' want guitar", resp.Name)
+	if resp.Entries[0].Name != "guitar" {
+		t.Fatalf("got '%s' want guitar", resp.Entries[0].Name)
 	}
-	if resp.Note != "scales" {
-		t.Fatalf("got '%s' want scales", resp.Note)
+	if resp.Entries[0].Note != "scales" {
+		t.Fatalf("got '%s' want scales", resp.Entries[0].Note)
 	}
-	if resp.TimeStamp == 0 {
+	if resp.Entries[0].TimeStamp == 0 {
 		t.Fatal("got 0 timestamp, want non-zero")
 	}
 }
-*/
 
 func TestListHabits_Empty(t *testing.T) {
 	h := newTestServer(newMemStore())
