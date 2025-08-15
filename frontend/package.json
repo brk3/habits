@@ -13,7 +13,9 @@
     "vite": "^7.0.4"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.12",
     "cal-heatmap": "^4.2.4",
-    "d3": "^7.9.0"
+    "d3": "^7.9.0",
+    "tailwindcss": "^4.1.12"
   }
 }

@@ -4,8 +4,10 @@ import CalHeatmap from 'cal-heatmap';
 import 'cal-heatmap/cal-heatmap.css';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div id="title"></div>
-  <div id="cal-heatmap"></div>
+  <div class="min-h-screen bg-gray-100 p-8">
+    <div id="title" class="mb-8"></div>
+    <div id="cal-heatmap" class="bg-white p-6 rounded-lg shadow-md"></div>
+  </div>
 `;
 
 type HeatmapDatum = {
@@ -95,6 +97,8 @@ const habit = getHabitFromURL();
 if (!habit) {
   console.error("No habit found in URL");
 } else {
-  document.querySelector<HTMLHeadingElement>('#title')!.innerHTML = `<h1>${toTitleCase(habit)}</h1>`;
+  document.querySelector<HTMLHeadingElement>('#title')!.innerHTML = `
+    <h1 class="text-4xl font-bold text-gray-800 text-center">${toTitleCase(habit)}</h1>
+  `;
   drawHabitHeatmap(habit);
 }

@@ -1,5 +1,1 @@
-#title {
-  font-size: 1em;
-  margin-bottom: 1rem;
-  font-family: sans-serif;
-}
+@import "tailwindcss";
