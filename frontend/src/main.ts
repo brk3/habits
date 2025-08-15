@@ -4,9 +4,43 @@ import CalHeatmap from 'cal-heatmap';
 import 'cal-heatmap/cal-heatmap.css';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div class="min-h-screen bg-gray-100 p-8">
-    <div id="title" class="mb-8"></div>
-    <div id="cal-heatmap" class="bg-white p-6 rounded-lg shadow-md"></div>
+  <div class="max-w-5xl mx-auto p-6">
+    <!-- Title -->
+    <h1 class="text-3xl font-bold mb-6">Habits</h1>
+
+    <!-- Top row of 3 cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      <div class="bg-white p-4 rounded-lg shadow">
+        <div class="text-lg">🔥 Current Streak</div>
+        <div class="text-2xl font-bold">7 days</div>
+      </div>
+      <div class="bg-white  p-4 rounded-lg shadow">
+        <div class="text-lg">🏅 Longest Streak</div>
+        <div class="text-2xl font-bold">14 days</div>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow">
+        <div class="text-lg">📅 This Month: 15 / 31</div>
+        <div class="text-2xl font-bold">48%</div>
+      </div>
+    </div>
+
+    <!-- Second row of 3 cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white p-4 rounded-lg shadow">
+        <div class="text-lg">Total Days Done</div>
+        <div class="text-2xl font-bold">212</div>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow">
+        <div class="text-lg">Best Month</div>
+        <div class="text-2xl font-bold">July 2025</div>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow">
+        <div class="text-lg">First Logged</div>
+        <div class="text-2xl font-bold">Jan 14, 2025</div>
+      </div>
+    </div>
+
+    <div id="cal-heatmap" class="bg-white p-6 rounded-lg shadow-md flex justify-center"></div>
   </div>
 `;
 
@@ -59,8 +93,8 @@ async function drawHabitHeatmap(habit: string) {
     subDomain: {
       type: 'day',
       radius: 2,
-      width: 15,
-      height: 15,
+      width: 13,
+      height: 13,
     },
     date: {
       start: new Date(earliest),
@@ -80,9 +114,11 @@ async function drawHabitHeatmap(habit: string) {
   });
 }
 
+/*
 function toTitleCase(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+*/
 
 function getHabitFromURL(): string | null {
   const parts = window.location.pathname.split('/');
@@ -97,8 +133,10 @@ const habit = getHabitFromURL();
 if (!habit) {
   console.error("No habit found in URL");
 } else {
+  /*
   document.querySelector<HTMLHeadingElement>('#title')!.innerHTML = `
     <h1 class="text-4xl font-bold text-gray-800 text-center">${toTitleCase(habit)}</h1>
   `;
+  */
   drawHabitHeatmap(habit);
 }
