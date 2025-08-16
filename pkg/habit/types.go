@@ -7,11 +7,12 @@ type Habit struct {
 }
 
 type HabitSummary struct {
-	Name              string `json:"name"`
-	CurrentStreakDays int    `json:"current_streak_days"`
-	LongestStreakDays int    `json:"longest_streak_days"`
-	DaysThisMonth     int    `json:"days_this_month"`
-	TotalDaysCount    int    `json:"total_days_count"`
-	BestMonth         int    `json:"best_month"`
-	LastUpdated       int64  `json:"last_updated"`
+	Name          string `json:"name"`
+	CurrentStreak int    `json:"current_streak"`
+	LongestStreak int    `json:"longest_streak"`
+	FirstLogged   int64  `json:"first_logged"`
+	TotalDaysDone int    `json:"total_days_done"`
+	BestMonth     int    `json:"best_month"`
+	ThisMonth     int    `json:"this_month"`
+	LastWrite     int64  `json:"last_write"`
 }

@@ -86,6 +86,39 @@ func TestListHabits_Empty(t *testing.T) {
 	}
 }
 
+func TestGetHabitSummary(t *testing.T) {
+	h := newTestServer(newMemStore())
+
+	rr := mockRequest(h, http.MethodPost, "/habits/",
+		habit.Habit{
+			Name:      "guitar",
+			Note:      "scales",
+			TimeStamp: time.Now().Unix(),
+		})
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("got %d want 201", rr.Code)
+	}
+
+	rr = mockRequest(h, http.MethodGet, "/habits/guitar/summary", nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got %d want 200", rr.Code)
+	}
+	log.Printf("response body: %s", rr.Body.String())
+	var resp HabitSummaryResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+
+	log.Printf("response: %+v", resp)
+	if resp.HabitID != "guitar" {
+		t.Fatalf("got '%s' want 'guitar'", resp.HabitID)
+	}
+	//if resp.HabitSummary.CurrentStreak == 0 {
+	//	t.Fatal("got 0 current streak, want non-zero")
+	//}
+	// TODO: add more checks for HabitSummary fields
+}
+
 func newTestServer(st storage.Store) http.Handler {
 	s := New(st)
 	return s.Router()

@@ -51,13 +51,23 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	summary, err := s.Store.GetHabitSummary(id)
-	if err != nil {
-		http.Error(w, `{"error":"error fetching habbit summary"}`, http.StatusInternalServerError)
-		return
+	summary := habit.HabitSummary{
+		Name: id,
+		// TODO: Placeholder values, should be replaced with actual computed values
+		CurrentStreak: 0,
+		LongestStreak: 0,
+		FirstLogged:   0,
+		TotalDaysDone: 0,
+		BestMonth:     0,
+		ThisMonth:     0,
+		LastWrite:     time.Now().Unix(),
+	}
+	summaryResponse := HabitSummaryResponse{
+		HabitID:      id,
+		HabitSummary: summary,
 	}
 
-	if err := writeJSON(w, http.StatusOK, summary); err != nil {
+	if err := writeJSON(w, http.StatusOK, summaryResponse); err != nil {
 		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
 		return
 	}

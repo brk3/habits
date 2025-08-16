@@ -83,35 +83,5 @@ func (s *Store) GetHabit(name string) ([]habit.Habit, error) {
 	return out, err
 }
 
-func (s *Store) GetHabitSummary(name string) (habit.HabitSummary, error) {
-	var summary habit.HabitSummary
-	summary.Name = name
-
-	err := s.db.View(func(tx *bbolt.Tx) error {
-		c := tx.Bucket(s.bucket).Cursor()
-		prefix := []byte(name + "/")
-		var lastUpdated int64
-		totalCount := 0
-
-		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
-			var e habit.Habit
-			if err := json.Unmarshal(v, &e); err != nil {
-				return err
-			}
-			totalCount++
-			if e.TimeStamp > lastUpdated {
-				lastUpdated = e.TimeStamp
-			}
-		}
-
-		// TODO(pbourke): Implement summary logic
-		//summary.TotalCount = totalCount
-		//summary.LastUpdated = lastUpdated
-		return nil
-	})
-
-	return summary, err
-}
-
 // compile-time check
 var _ storage.Store = (*Store)(nil)

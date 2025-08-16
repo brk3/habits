@@ -12,3 +12,8 @@ type HabitGetResponse struct {
 	HabitID string        `json:"habit_id"`
 	Entries []habit.Habit `json:"entries"`
 }
+
+type HabitSummaryResponse struct {
+	HabitID      string             `json:"habit_id"`
+	HabitSummary habit.HabitSummary `json:"habit_summary"`
+}
