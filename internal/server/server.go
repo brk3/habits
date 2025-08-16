@@ -51,22 +51,28 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	currentStreak, longestSreak, err := s.computeStreaks(id)
+	if err != nil {
+		http.Error(w, `{"error":"error computing streaks"}`, http.StatusInternalServerError)
+		return
+	}
+
 	summary := habit.HabitSummary{
 		Name: id,
-		// TODO: Placeholder values, should be replaced with actual computed values
-		CurrentStreak: 0,
-		LongestStreak: 0,
+		// TODO: fill in fields
+		CurrentStreak: currentStreak,
+		LongestStreak: longestSreak,
 		FirstLogged:   0,
 		TotalDaysDone: 0,
 		BestMonth:     0,
 		ThisMonth:     0,
 		LastWrite:     time.Now().Unix(),
 	}
+
 	summaryResponse := HabitSummaryResponse{
 		HabitID:      id,
 		HabitSummary: summary,
 	}
-
 	if err := writeJSON(w, http.StatusOK, summaryResponse); err != nil {
 		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
 		return
