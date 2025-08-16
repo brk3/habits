@@ -4,6 +4,8 @@
 [![Docker Build](https://github.com/brk3/habits/actions/workflows/docker-latest.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/docker.yml)
 [![Frontend Build](https://github.com/brk3/habits/actions/workflows/frontend-docker-latest.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/frontend.yml)
 
+![Screenshot](./frontend.png)
+
 ## Quickstart
 ```bash
 # Build the project
