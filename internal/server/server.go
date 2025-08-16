@@ -17,20 +17,6 @@ type Server struct {
 	Store storage.Store
 }
 
-type HabitListResponse struct {
-	Habits []string `json:"habits"`
-}
-
-type HabitGetResponse struct {
-	HabitID string        `json:"habit_id"`
-	Entries []habit.Habit `json:"entries"`
-}
-
-// TODO(pbourke): integrate this with the CLI
-//type VersionInfoResponse struct {
-//	VersionInfo versioninfo.VersionInfo `json:"version_info"`
-//}
-
 func New(store storage.Store) *Server {
 	return &Server{Store: store}
 }
@@ -43,17 +29,38 @@ func writeJSON(w http.ResponseWriter, code int, v any) error {
 
 func (s *Server) Router() http.Handler {
 	r := chi.NewRouter()
+
 	r.Use(middleware.Logger)
 
+	r.Get("/version", s.getVersionInfo)
 	r.Route("/habits", func(r chi.Router) {
 		r.Post("/", s.trackHabit)
 		r.Get("/", s.listHabits)
 		r.Get("/{habit_id}", s.getHabit)
+		r.Get("/{habit_id}/summary", s.getHabitSummary)
+		//r.Get("/{habit_id}/heatmap", s.getHabitHeatmap)
+
 	})
-
-	r.Get("/version", s.getVersionInfo)
-
 	return r
+}
+
+func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "habit_id")
+	if id == "" {
+		http.Error(w, `{"error":"habit id is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	summary, err := s.Store.GetHabitSummary(id)
+	if err != nil {
+		http.Error(w, `{"error":"error fetching habbit summary"}`, http.StatusInternalServerError)
+		return
+	}
+
+	if err := writeJSON(w, http.StatusOK, summary); err != nil {
+		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *Server) getVersionInfo(w http.ResponseWriter, _ *http.Request) {
@@ -92,7 +99,7 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 	if h.TimeStamp == 0 {
 		h.TimeStamp = time.Now().Unix()
 	}
-	if err := s.Store.Put(h); err != nil {
+	if err := s.Store.PutHabit(h); err != nil {
 		http.Error(w, `{"error":"database write failed"}`, http.StatusInternalServerError)
 		return
 	}
@@ -109,7 +116,7 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entries, err := s.Store.ListEntriesByHabit(id)
+	entries, err := s.Store.GetHabit(id)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return

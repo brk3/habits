@@ -39,7 +39,7 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
-func (s *Store) Put(h habit.Habit) error {
+func (s *Store) PutHabit(h habit.Habit) error {
 	val, _ := json.Marshal(h)
 	key := fmt.Appendf(nil, "%s/%s", h.Name, time.Unix(h.TimeStamp, 0).Format(time.RFC3339))
 	return s.db.Update(func(tx *bbolt.Tx) error {
@@ -66,7 +66,7 @@ func (s *Store) ListHabitNames() ([]string, error) {
 	return out, nil
 }
 
-func (s *Store) ListEntriesByHabit(name string) ([]habit.Habit, error) {
+func (s *Store) GetHabit(name string) ([]habit.Habit, error) {
 	var out []habit.Habit
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		c := tx.Bucket(s.bucket).Cursor()
@@ -81,6 +81,36 @@ func (s *Store) ListEntriesByHabit(name string) ([]habit.Habit, error) {
 		return nil
 	})
 	return out, err
+}
+
+func (s *Store) GetHabitSummary(name string) (habit.HabitSummary, error) {
+	var summary habit.HabitSummary
+	summary.Name = name
+
+	err := s.db.View(func(tx *bbolt.Tx) error {
+		c := tx.Bucket(s.bucket).Cursor()
+		prefix := []byte(name + "/")
+		var lastUpdated int64
+		totalCount := 0
+
+		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
+			var e habit.Habit
+			if err := json.Unmarshal(v, &e); err != nil {
+				return err
+			}
+			totalCount++
+			if e.TimeStamp > lastUpdated {
+				lastUpdated = e.TimeStamp
+			}
+		}
+
+		// TODO(pbourke): Implement summary logic
+		//summary.TotalCount = totalCount
+		//summary.LastUpdated = lastUpdated
+		return nil
+	})
+
+	return summary, err
 }
 
 // compile-time check

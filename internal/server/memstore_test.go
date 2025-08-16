@@ -16,7 +16,7 @@ func newMemStore() *memStore {
 	return &memStore{data: map[string][]habit.Habit{}}
 }
 
-func (m *memStore) Put(h habit.Habit) error {
+func (m *memStore) PutHabit(h habit.Habit) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -37,11 +37,24 @@ func (m *memStore) ListHabitNames() ([]string, error) {
 	return out, nil
 }
 
-func (m *memStore) ListEntriesByHabit(name string) ([]habit.Habit, error) {
+func (m *memStore) GetHabit(name string) ([]habit.Habit, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	return append([]habit.Habit(nil), m.data[name]...), nil
+}
+
+func (m *memStore) GetHabitSummary(name string) (habit.HabitSummary, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	summary := habit.HabitSummary{
+		Name: name,
+	}
+
+	// TODO(pbourke): Implement summary test
+
+	return summary, nil
 }
 
 func (m *memStore) Close() error {
