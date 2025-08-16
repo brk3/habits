@@ -199,6 +199,38 @@ func TestTrackHabit_WithInvalidTimeStamp(t *testing.T) {
 	}
 }
 
+func TestGetHabitSummary_FirstLogged(t *testing.T) {
+	h := newTestServer(newMemStore())
+
+	for i := 0; i <= 5; i++ {
+		rr := mockRequest(h, http.MethodPost, "/habits/",
+			habit.Habit{
+				Name:      "guitar",
+				Note:      "practice",
+				TimeStamp: time.Now().AddDate(0, 0, -i).Unix(),
+			})
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("got %d want 201", rr.Code)
+		}
+	}
+
+	rr := mockRequest(h, http.MethodGet, "/habits/guitar/summary", nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got %d want 200", rr.Code)
+	}
+	log.Printf("response body: %s", rr.Body.String())
+	var resp HabitSummaryResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	log.Printf("response: %+v", resp)
+
+	expectedFirstLogged := time.Now().AddDate(0, 0, -5).Unix()
+	if resp.HabitSummary.FirstLogged != expectedFirstLogged {
+		t.Fatalf("got first logged %d, want %d", resp.HabitSummary.FirstLogged, expectedFirstLogged)
+	}
+}
+
 func newTestServer(st storage.Store) http.Handler {
 	s := New(st)
 	return s.Router()

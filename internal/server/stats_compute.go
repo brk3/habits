@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"slices"
 	"time"
 )
@@ -67,4 +68,22 @@ func (s *Server) computeStreaks(habit string) (current, longest int, err error) 
 	}
 
 	return current, longest, nil
+}
+
+func (s *Server) getFirstLogged(habit string) (int64, error) {
+	entries, err := s.Store.GetHabit(habit)
+	if err != nil {
+		return 0, err
+	}
+	if len(entries) == 0 {
+		return 0, fmt.Errorf("habit %s not found", habit)
+	}
+
+	days := make([]int64, len(entries))
+	for i, entry := range entries {
+		days[i] = entry.TimeStamp
+	}
+	slices.Sort(days)
+
+	return days[0], nil
 }

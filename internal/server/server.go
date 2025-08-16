@@ -58,12 +58,18 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	firstLogged, err := s.getFirstLogged(id)
+	if err != nil {
+		http.Error(w, `{"error":"error retrieving first logged date"}`, http.StatusInternalServerError)
+		return
+	}
+
 	summary := habit.HabitSummary{
 		Name: id,
 		// TODO: fill in fields
 		CurrentStreak: currentStreak,
 		LongestStreak: longestSreak,
-		FirstLogged:   0,
+		FirstLogged:   firstLogged,
 		TotalDaysDone: 0,
 		BestMonth:     0,
 		ThisMonth:     0,
