@@ -64,13 +64,19 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	totalDaysDone, err := s.computeTotalDaysDone(id)
+	if err != nil {
+		http.Error(w, `{"error":"error computing total days done"}`, http.StatusInternalServerError)
+		return
+	}
+
 	summary := habit.HabitSummary{
 		Name: id,
 		// TODO: fill in fields
 		CurrentStreak: currentStreak,
 		LongestStreak: longestSreak,
 		FirstLogged:   firstLogged,
-		TotalDaysDone: 0,
+		TotalDaysDone: totalDaysDone,
 		BestMonth:     0,
 		ThisMonth:     0,
 		LastWrite:     time.Now().Unix(),

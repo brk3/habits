@@ -12,12 +12,10 @@ func (s *Server) computeStreaks(habit string) (current, longest int, err error) 
 		return 0, 0, err
 	}
 
-	const daySec int64 = 24 * 60 * 60
-
 	// collect unique days from entries
 	uniq := make(map[int64]struct{}, len(entries))
 	for i := range entries {
-		day := time.Unix(entries[i].TimeStamp, 0).UTC().Truncate(24*time.Hour).Unix() / daySec
+		day := toDay(entries[i].TimeStamp)
 		uniq[day] = struct{}{}
 	}
 
@@ -33,7 +31,7 @@ func (s *Server) computeStreaks(habit string) (current, longest int, err error) 
 	slices.Sort(days)
 	slices.Reverse(days)
 
-	today := time.Now().UTC().Truncate(24*time.Hour).Unix() / daySec
+	today := toDay(time.Now().Unix())
 
 	// single unique day
 	if len(days) == 1 {
@@ -86,4 +84,29 @@ func (s *Server) getFirstLogged(habit string) (int64, error) {
 	slices.Sort(days)
 
 	return days[0], nil
+}
+
+func (s *Server) computeTotalDaysDone(habit string) (int, error) {
+	entries, err := s.Store.GetHabit(habit)
+	if err != nil {
+		return 0, err
+	}
+	if len(entries) == 0 {
+		return 0, fmt.Errorf("habit %s not found", habit)
+	}
+
+	days := make(map[int64]struct{}, len(entries))
+	for _, e := range entries {
+		days[toDay(e.TimeStamp)] = struct{}{}
+	}
+
+	return len(days), nil
+}
+
+// toDay converts a Unix timestamp (seconds since 1970) into a "day index".
+// A day index is the number of days since 1970-01-01 UTC.
+// making it easy to compare days and detect consecutive streaks.
+func toDay(ts int64) int64 {
+	const daySec = 24 * 60 * 60
+	return time.Unix(ts, 0).UTC().Truncate(24*time.Hour).Unix() / daySec
 }
