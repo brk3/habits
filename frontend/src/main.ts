@@ -6,7 +6,7 @@ import 'cal-heatmap/cal-heatmap.css';
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="max-w-5xl mx-auto p-6">
     <!-- Title -->
-    <h1 class="text-3xl font-bold mb-6">Habits</h1>
+    <div id="title" class="text-3xl font-bold mb-6"></div>
 
     <!-- Top row of 3 cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
@@ -114,11 +114,9 @@ async function drawHabitHeatmap(habit: string) {
   });
 }
 
-/*
 function toTitleCase(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
-*/
 
 function getHabitFromURL(): string | null {
   const parts = window.location.pathname.split('/');
@@ -133,10 +131,8 @@ const habit = getHabitFromURL();
 if (!habit) {
   console.error("No habit found in URL");
 } else {
-  /*
   document.querySelector<HTMLHeadingElement>('#title')!.innerHTML = `
-    <h1 class="text-4xl font-bold text-gray-800 text-center">${toTitleCase(habit)}</h1>
+    ${toTitleCase(habit)}
   `;
-  */
   drawHabitHeatmap(habit);
 }
