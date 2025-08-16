@@ -4,7 +4,7 @@ BUILD    ?= $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 LDFLAGS  := -X 'github.com/brk3/habits/pkg/versioninfo.Version=$(VERSION)' -X 'github.com/brk3/habits/pkg/versioninfo.BuildDate=$(BUILD)'
 BIN_DIR  := bin
 
-.PHONY: all build test fmt vet lint clean server
+.PHONY: all build test fmt vet lint clean server frontend
 
 all: fmt vet lint test build
 
@@ -42,3 +42,6 @@ lint:
 
 server:
 	go run main.go server
+
+frontend:
+	cd frontend && npm run dev
