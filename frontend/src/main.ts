@@ -6,28 +6,8 @@ import 'cal-heatmap/cal-heatmap.css';
 // Set the body background to adapt to dark mode
 document.body.className = 'bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200';
 
-// Add custom CSS for cal-heatmap month labels in dark mode
-const style = document.createElement('style');
-style.textContent = `
-  @media (prefers-color-scheme: dark) {
-    .ch-domain-text {
-      fill: #ffffff !important;
-      color: #ffffff !important;
-    }
-  }
-  
-  @media (prefers-color-scheme: light) {
-    .ch-domain-text {
-      fill: #374151 !important;
-      color: #374151 !important;
-    }
-  }
-`;
-document.head.appendChild(style);
-
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="max-w-5xl mx-auto p-6">
-    <!-- Title -->
     <div id="title" class="text-3xl font-bold mb-6 text-gray-900 dark:text-white"></div>
 
     <!-- Top row of 3 cards -->
@@ -93,10 +73,6 @@ async function fetchHabitData(habit: string): Promise<HeatmapDatum[]> {
   return result;
 }
 
-function isDarkMode(): boolean {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
 async function drawHabitHeatmap(habit: string) {
   const data = await fetchHabitData(habit);
   console.log("Data for heatmap:", data);
@@ -105,7 +81,7 @@ async function drawHabitHeatmap(habit: string) {
   const earliest = new Date(Math.min(...timestamps));
   console.log("Start date for heatmap:", earliest.toISOString());
 
-  const darkMode = isDarkMode();
+  const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
   
   const cal = new CalHeatmap();
   cal.paint({
@@ -158,22 +134,6 @@ function getHabitFromURL(): string | null {
   return null;
 }
 
-// Listen for changes in color scheme preference
-function setupDarkModeListener() {
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-  
-  mediaQuery.addEventListener('change', (e) => {
-    console.log('Color scheme changed:', e.matches ? 'dark' : 'light');
-    // Re-render the heatmap with new colors
-    const habit = getHabitFromURL();
-    if (habit) {
-      // Clear existing heatmap
-      document.querySelector('#cal-heatmap')!.innerHTML = '';
-      drawHabitHeatmap(habit);
-    }
-  });
-}
-
 const habit = getHabitFromURL();
 if (!habit) {
   console.error("No habit found in URL");
@@ -182,5 +142,4 @@ if (!habit) {
     ${toTitleCase(habit)}
   `;
   drawHabitHeatmap(habit);
-  setupDarkModeListener();
 }

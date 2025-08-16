@@ -1,1 +1,17 @@
 @import "tailwindcss";
+
+/* Fixes calheatmap month labels in dark mode */
+@media (prefers-color-scheme: dark) {
+  .ch-domain-text {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .ch-domain-text {
+    fill: #374151 !important;
+    color: #374151 !important;
+  }
+}
+/* Fixes calheatmap day labels in dark mode */
