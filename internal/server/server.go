@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -108,12 +109,9 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
 		return
 	}
-	if h.Name == "" {
-		http.Error(w, `{"error":"habit name is required"}`, http.StatusBadRequest)
+	if err := validateHabit(h); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
-	}
-	if h.TimeStamp == 0 {
-		h.TimeStamp = time.Now().Unix()
 	}
 	if err := s.Store.PutHabit(h); err != nil {
 		http.Error(w, `{"error":"database write failed"}`, http.StatusInternalServerError)
@@ -150,4 +148,23 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
 		return
 	}
+}
+
+func validateHabit(h habit.Habit) error {
+	const maxNameLength = 20
+	const maxNoteLength = 200
+	const minTS = 946684800
+	const maxTS = 4102444800
+
+	if len(h.Name) == 0 || len(h.Name) > maxNameLength {
+		return fmt.Errorf("bad habit name: must be 1-%d characters", maxNameLength)
+	}
+	if len(h.Note) > maxNoteLength {
+		return fmt.Errorf("bad habit note: must be 0-%d characters", maxNoteLength)
+	}
+	if h.TimeStamp < minTS || h.TimeStamp > maxTS {
+		return fmt.Errorf("invalid timestamp")
+	}
+
+	return nil
 }

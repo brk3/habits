@@ -86,11 +86,11 @@ func TestListHabits_Empty(t *testing.T) {
 	}
 }
 
-func TestGetHabitSummary(t *testing.T) {
+func TestGetHabitSummary_ActiveStreak(t *testing.T) {
 	h := newTestServer(newMemStore())
 
-	// create some guitar habits across different days
-	for i := 0; i < 10; i++ {
+	const activeStreak = 5
+	for i := 0; i <= activeStreak; i++ {
 		rr := mockRequest(h, http.MethodPost, "/habits/",
 			habit.Habit{
 				Name:      "guitar",
@@ -111,15 +111,68 @@ func TestGetHabitSummary(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("unmarshal error: %v", err)
 	}
-
 	log.Printf("response: %+v", resp)
-	if resp.HabitID != "guitar" {
-		t.Fatalf("got '%s' want 'guitar'", resp.HabitID)
+
+	if resp.HabitSummary.CurrentStreak != activeStreak {
+		t.Fatalf("got current streak %d, want %d", resp.HabitSummary.CurrentStreak, activeStreak)
 	}
-	//if resp.HabitSummary.CurrentStreak == 0 {
-	//	t.Fatal("got 0 current streak, want non-zero")
-	//}
-	// TODO: add more checks for HabitSummary fields
+	if resp.HabitSummary.LongestStreak != activeStreak {
+		t.Fatalf("got longest streak %d, want %d", resp.HabitSummary.LongestStreak, activeStreak)
+	}
+}
+
+func TestGetHabitSummary_Streak_ActiveYesterday(t *testing.T) {
+	// TODO: implement this test
+}
+
+func TestGetHabitSummary_Streak_NotActive(t *testing.T) {
+	h := newTestServer(newMemStore())
+
+	const oldStreak = 5
+	for i := 2; i <= oldStreak+2; i++ {
+		rr := mockRequest(h, http.MethodPost, "/habits/",
+			habit.Habit{
+				Name:      "guitar",
+				Note:      "practice",
+				TimeStamp: time.Now().AddDate(0, 0, -i).Unix(),
+			})
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("got %d want 201", rr.Code)
+		}
+	}
+
+	rr := mockRequest(h, http.MethodGet, "/habits/guitar/summary", nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got %d want 200", rr.Code)
+	}
+	log.Printf("response body: %s", rr.Body.String())
+	var resp HabitSummaryResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	log.Printf("response: %+v", resp)
+
+	if resp.HabitSummary.CurrentStreak != 0 {
+		t.Fatalf("got current streak %d, want %d", resp.HabitSummary.CurrentStreak, 0)
+	}
+	if resp.HabitSummary.LongestStreak != oldStreak {
+		t.Fatalf("got longest streak %d, want %d", resp.HabitSummary.LongestStreak, oldStreak)
+	}
+}
+
+func TestTrackHabit_WithInvalidTimeStamp(t *testing.T) {
+	st := newMemStore()
+	h := newTestServer(st)
+
+	rr := mockRequest(h, http.MethodPost, "/habits/",
+		habit.Habit{
+			Name:      "guitar",
+			Note:      "scales",
+			TimeStamp: -1,
+		})
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("got %d want 400 Bad Request", rr.Code)
+	}
 }
 
 func newTestServer(st storage.Store) http.Handler {
