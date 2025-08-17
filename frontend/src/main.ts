@@ -12,33 +12,33 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
     <!-- Top row of 3 cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30">
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="current-streak">
         <div class="text-lg text-gray-700 dark:text-gray-300">🔥 Current Streak</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">7 days</div>
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
       </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30">
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="longest-streak">
         <div class="text-lg text-gray-700 dark:text-gray-300">🏅 Longest Streak</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">14 days</div>
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
       </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30">
-        <div class="text-lg text-gray-700 dark:text-gray-300">📅 This Month: 15 / 31</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">48%</div>
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="month-progress">
+        <div class="text-lg text-gray-700 dark:text-gray-300">📅 This Month</div>
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
       </div>
     </div>
 
     <!-- Second row of 3 cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30">
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="total-days">
         <div class="text-lg text-gray-700 dark:text-gray-300">Total Days Done</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">212</div>
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
       </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30">
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="best-month">
         <div class="text-lg text-gray-700 dark:text-gray-300">Best Month</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">July 2025</div>
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
       </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30">
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="first-logged">
         <div class="text-lg text-gray-700 dark:text-gray-300">First Logged</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">Jan 14, 2025</div>
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
       </div>
     </div>
 
@@ -52,7 +52,7 @@ type HeatmapDatum = {
   v: string;       // habit name
 };
 
-async function fetchHabitData(habit: string): Promise<HeatmapDatum[]> {
+async function fetchHabit(habit: string): Promise<HeatmapDatum[]> {
   console.log(`Fetching data for habit: ${habit}`);
   const res = await fetch(`/api/habits/${habit}`);
   console.log("Response status:", res);
@@ -73,8 +73,17 @@ async function fetchHabitData(habit: string): Promise<HeatmapDatum[]> {
   return result;
 }
 
+async function fetchHabitSummary(habit: string): Promise<any> {
+  console.log(`Fetching summary for habit: ${habit}`);
+  const res = await fetch(`/api/habits/${habit}/summary`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch summary for habit ${habit}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
 async function drawHabitHeatmap(habit: string) {
-  const data = await fetchHabitData(habit);
+  const data = await fetchHabit(habit);
   console.log("Data for heatmap:", data);
 
   const timestamps = data.map(d => d.t);
@@ -134,6 +143,38 @@ function getHabitFromURL(): string | null {
   return null;
 }
 
+async function drawSummaryStats(id: string) {
+  const data = await fetchHabitSummary(id);
+  console.log("Summary data:", data);
+
+  const updateStat = (stat: string, value: string | number) => {
+    const container = document.querySelector(`[data-stat="${stat}"]`);
+    if (container) {
+      const valueElement = container.querySelector('.text-2xl');
+      if (valueElement) {
+        valueElement.textContent = value.toString();
+      }
+    }
+  };
+
+  updateStat('current-streak', `${data.habit_summary.current_streak} days`);
+  updateStat('longest-streak', `${data.habit_summary.longest_streak} days`);
+  updateStat('month-progress', computeDaysThisMonthAsPercentage(data.habit_summary.this_month));
+  updateStat('total-days', data.habit_summary.total_days_done);
+  updateStat('best-month', data.habit_summary.best_month);
+  updateStat('first-logged', new Date(data.habit_summary.first_logged * 1000).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric'
+  }));
+}
+
+function computeDaysThisMonthAsPercentage(daysThisMonth: number): string {
+  const today = new Date();
+  const totalDaysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const percentage = (daysThisMonth / totalDaysInMonth) * 100;
+  return `${Math.round(percentage)}%`;
+}
+
+// main
 const habit = getHabitFromURL();
 if (!habit) {
   console.error("No habit found in URL");
@@ -141,5 +182,6 @@ if (!habit) {
   document.querySelector<HTMLHeadingElement>('#title')!.innerHTML = `
     ${toTitleCase(habit)}
   `;
+  drawSummaryStats(habit);
   drawHabitHeatmap(habit);
 }

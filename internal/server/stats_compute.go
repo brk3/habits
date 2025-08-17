@@ -103,6 +103,27 @@ func (s *Server) computeTotalDaysDone(habit string) (int, error) {
 	return len(days), nil
 }
 
+func (s *Server) computeDaysThisMonth(habit string) (int, error) {
+	entries, err := s.Store.GetHabit(habit)
+	if err != nil {
+		return 0, err
+	}
+	if len(entries) == 0 {
+		return 0, fmt.Errorf("habit %s not found", habit)
+	}
+
+	thisMonth := time.Now().UTC().Truncate(24 * time.Hour).Month()
+	daysThisMonth := make(map[int64]struct{})
+
+	for _, e := range entries {
+		if time.Unix(e.TimeStamp, 0).UTC().Month() == thisMonth {
+			daysThisMonth[toDay(e.TimeStamp)] = struct{}{}
+		}
+	}
+
+	return len(daysThisMonth), nil
+}
+
 // toDay converts a Unix timestamp (seconds since 1970) into a "day index".
 // A day index is the number of days since 1970-01-01 UTC.
 // making it easy to compare days and detect consecutive streaks.

@@ -70,6 +70,12 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	daysThisMonth, err := s.computeDaysThisMonth(id)
+	if err != nil {
+		http.Error(w, `{"error":"error computing days this month"}`, http.StatusInternalServerError)
+		return
+	}
+
 	summary := habit.HabitSummary{
 		Name: id,
 		// TODO: fill in fields
@@ -78,7 +84,7 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 		FirstLogged:   firstLogged,
 		TotalDaysDone: totalDaysDone,
 		BestMonth:     0,
-		ThisMonth:     0,
+		ThisMonth:     daysThisMonth,
 		LastWrite:     time.Now().Unix(),
 	}
 
