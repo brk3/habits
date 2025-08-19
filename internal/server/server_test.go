@@ -276,6 +276,54 @@ func TestGetHabitSummary_TotalDaysDone(t *testing.T) {
 	}
 }
 
+func TestGetHabitSummary_BestMonth(t *testing.T) {
+	h := newTestServer(newMemStore())
+
+	// Use a fixed date: January 15, 2025
+	baseTime := time.Date(2025, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// log 5 days of habits in January
+	for i := 0; i < 5; i++ {
+		rr := mockRequest(h, http.MethodPost, "/habits/",
+			habit.Habit{
+				Name:      "guitar",
+				Note:      "practice",
+				TimeStamp: baseTime.AddDate(0, 0, -i).Unix(),
+			})
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("got %d want 201", rr.Code)
+		}
+	}
+
+	// log 3 days in December 2024
+	for i := 15; i < 18; i++ {
+		rr := mockRequest(h, http.MethodPost, "/habits/",
+			habit.Habit{
+				Name:      "guitar",
+				Note:      "practice",
+				TimeStamp: baseTime.AddDate(0, -1, -i).Unix(),
+			})
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("got %d want 201", rr.Code)
+		}
+	}
+
+	rr := mockRequest(h, http.MethodGet, "/habits/guitar/summary", nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got %d want 200", rr.Code)
+	}
+	log.Printf("response body: %s", rr.Body.String())
+	var resp HabitSummaryResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	log.Printf("response: %+v", resp)
+
+	if resp.HabitSummary.BestMonth != 1 {
+		t.Fatalf("got best month %d, want 3", resp.HabitSummary.BestMonth)
+	}
+}
+
 func newTestServer(st storage.Store) http.Handler {
 	s := New(st)
 	return s.Router()

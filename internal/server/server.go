@@ -76,14 +76,19 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	bestMonth, err := s.computeBestMonth(id)
+	if err != nil {
+		http.Error(w, `{"error":"error computing best month"}`, http.StatusInternalServerError)
+		return
+	}
+
 	summary := habit.HabitSummary{
-		Name: id,
-		// TODO: fill in fields
+		Name:          id,
 		CurrentStreak: currentStreak,
 		LongestStreak: longestSreak,
 		FirstLogged:   firstLogged,
 		TotalDaysDone: totalDaysDone,
-		BestMonth:     0,
+		BestMonth:     bestMonth,
 		ThisMonth:     daysThisMonth,
 		LastWrite:     time.Now().Unix(),
 	}

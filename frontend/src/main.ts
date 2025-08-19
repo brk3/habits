@@ -161,7 +161,7 @@ async function drawSummaryStats(id: string) {
   updateStat('longest-streak', `${data.habit_summary.longest_streak} days`);
   updateStat('month-progress', computeDaysThisMonthAsPercentage(data.habit_summary.this_month));
   updateStat('total-days', data.habit_summary.total_days_done);
-  updateStat('best-month', data.habit_summary.best_month);
+  updateStat('best-month', intToMonth(data.habit_summary.best_month));
   updateStat('first-logged', new Date(data.habit_summary.first_logged * 1000).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric'
   }));
@@ -172,6 +172,14 @@ function computeDaysThisMonthAsPercentage(daysThisMonth: number): string {
   const totalDaysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   const percentage = (daysThisMonth / totalDaysInMonth) * 100;
   return `${Math.round(percentage)}%`;
+}
+
+function intToMonth(month: number): string {
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  ];
+  return months[month-1];
 }
 
 // main

@@ -124,6 +124,35 @@ func (s *Server) computeDaysThisMonth(habit string) (int, error) {
 	return len(daysThisMonth), nil
 }
 
+func (s *Server) computeBestMonth(habit string) (int, error) {
+	entries, err := s.Store.GetHabit(habit)
+	if err != nil {
+		return 0, err
+	}
+	if len(entries) == 0 {
+		return 0, fmt.Errorf("habit %s not found", habit)
+	}
+
+	monthDays := map[int]int{}
+	for _, e := range entries {
+		date := time.Unix(e.TimeStamp, 0).UTC()
+		if date.Year() == time.Now().Year() {
+			monthDays[int(date.Month())]++
+		}
+	}
+
+	bestMonth := 0
+	maxDays := 0
+	for k, v := range monthDays {
+		if v > maxDays {
+			bestMonth = k
+			maxDays = v
+		}
+	}
+
+	return bestMonth, nil
+}
+
 // toDay converts a Unix timestamp (seconds since 1970) into a "day index".
 // A day index is the number of days since 1970-01-01 UTC.
 // making it easy to compare days and detect consecutive streaks.
