@@ -4,9 +4,24 @@
 [![Docker Build](https://github.com/brk3/habits/actions/workflows/docker-latest.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/docker.yml)
 [![Frontend Build](https://github.com/brk3/habits/actions/workflows/frontend-docker-latest.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/frontend.yml)
 
-![Screenshot](./frontend.png)
+![Screenshot](./screenshot.png)
 
 ## Quickstart
+First, download a [binary](https://github.com/brk3/habits/releases) for your OS.
+
+Then start a server and habits API:
+```
+docker-compose up -d
+```
+
+Track a habit!
+```
+habit track running '5km in park'
+```
+
+Open localhost:8080/habits/{habit} to view stats for your habit.
+
+## Development
 ```bash
 # Build the project
 make build
@@ -22,7 +37,7 @@ npm run dev
 # Track a habit with a note
 habits track guitar "practiced riffs"
 
-# > Open localhost:5173/habits/<habit> to view a heatmap
+# > Access frontend on localhost:5173/habits/{habit}
 ```
 
 ## Environment variables
