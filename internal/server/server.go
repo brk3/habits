@@ -12,6 +12,35 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+var (
+	httpRequestsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "habits_http_requests_total",
+			Help: "Total number of HTTP requests by endpoint and method",
+		},
+		[]string{"endpoint", "method"},
+	)
+
+	httpRequestDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "habits_http_request_duration_seconds",
+			Help:    "Duration of HTTP requests in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"endpoint", "method"},
+	)
+
+	activeHabits = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "habits_active_habits_total",
+			Help: "Total number of active habits",
+		},
+	)
 )
 
 type Server struct {
@@ -32,6 +61,9 @@ func (s *Server) Router() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
+	r.Use(metricsMiddleware)
+
+	r.Handle("/metrics", promhttp.Handler())
 
 	r.Get("/version", s.getVersionInfo)
 	r.Route("/habits", func(r chi.Router) {
@@ -39,9 +71,8 @@ func (s *Server) Router() http.Handler {
 		r.Get("/", s.listHabits)
 		r.Get("/{habit_id}", s.getHabit)
 		r.Get("/{habit_id}/summary", s.getHabitSummary)
-		//r.Get("/{habit_id}/heatmap", s.getHabitHeatmap)
-
 	})
+
 	return r
 }
 
@@ -140,6 +171,11 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"database write failed"}`, http.StatusInternalServerError)
 		return
 	}
+
+	// After successfully tracking a habit, update active habits metric
+	habits, _ := s.Store.ListHabitNames()
+	activeHabits.Set(float64(len(habits)))
+
 	if err := writeJSON(w, http.StatusCreated, h); err != nil {
 		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
 		return
@@ -190,4 +226,16 @@ func validateHabit(h habit.Habit) error {
 	}
 
 	return nil
+}
+
+func metricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		next.ServeHTTP(w, r)
+
+		duration := time.Since(start).Seconds()
+		httpRequestsTotal.WithLabelValues(r.URL.Path, r.Method).Inc()
+		httpRequestDuration.WithLabelValues(r.URL.Path, r.Method).Observe(duration)
+	})
 }
