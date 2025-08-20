@@ -82,6 +82,15 @@ async function fetchHabitSummary(habit: string): Promise<any> {
   return res.json();
 }
 
+async function fetchHabits(): Promise<string[]> {
+  const res = await fetch('/api/habits');
+  if (!res.ok) {
+    throw new Error(`Failed to fetch habits: ${res.statusText}`);
+  }
+  const data = await res.json();
+  return data.habits;
+}
+
 async function drawHabitHeatmap(habit: string) {
   const data = await fetchHabit(habit);
   console.log("Data for heatmap:", data);
@@ -182,10 +191,61 @@ function intToMonth(month: number): string {
   return months[month-1];
 }
 
+async function drawHabitsList() {
+  document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+    <div class="max-w-5xl mx-auto p-6">
+      <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">My Habits</h1>
+      <div class="grid gap-4">
+        <div id="habits-list" class="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-700/30 divide-y dark:divide-gray-700">
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    const habits = await fetchHabits();
+    const habitsList = document.querySelector('#habits-list')!;
+    
+    if (habits.length === 0) {
+      habitsList.innerHTML = `
+        <div class="p-4 text-gray-600 dark:text-gray-400">
+          No habits tracked yet. Start by tracking your first habit!
+        </div>
+      `;
+      return;
+    }
+
+    habitsList.innerHTML = habits
+      .sort((a, b) => a.localeCompare(b))
+      .map(habit => `
+        <a href="/habits/${habit}" 
+           class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
+          <div class="flex items-center justify-between">
+            <span class="text-lg font-medium text-gray-900 dark:text-white">
+              ${toTitleCase(habit)}
+            </span>
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </a>
+      `)
+      .join('');
+
+  } catch (error) {
+    console.error('Failed to fetch habits:', error);
+    document.querySelector('#habits-list')!.innerHTML = `
+      <div class="p-4 text-red-600 dark:text-red-400">
+        Failed to load habits. Please try again later.
+      </div>
+    `;
+  }
+}
+
 // main
 const habit = getHabitFromURL();
 if (!habit) {
-  console.error("No habit found in URL");
+  drawHabitsList();
 } else {
   document.querySelector<HTMLHeadingElement>('#title')!.innerHTML = `
     ${toTitleCase(habit)}
