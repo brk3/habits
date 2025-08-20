@@ -98,6 +98,14 @@ async function fetchHabits(): Promise<string[]> {
   return data.habits;
 }
 
+async function fetchVersionInfo(): Promise<{ Version: string; BuildDate: string }> {
+  const res = await fetch('/version');
+  if (!res.ok) {
+    throw new Error(`Failed to fetch version info: ${res.statusText}`);
+  }
+  return res.json();
+}
+
 async function drawHabitHeatmap(habit: string) {
   const data = await fetchHabit(habit);
   console.log("Data for heatmap:", data);
@@ -249,6 +257,18 @@ async function drawHabitsList() {
   }
 }
 
+async function drawHabitFooter() {
+  try {
+    const versionInfo = await fetchVersionInfo();
+    const footer = document.createElement('div');
+    footer.className = 'text-right max-w-5xl mx-auto mt-8 mb-4 px-6 text-xs text-gray-400 dark:text-gray-500';
+    footer.innerHTML = `${versionInfo.Version} - ${versionInfo.BuildDate}`;
+    document.querySelector('#app')?.appendChild(footer);
+  } catch (error) {
+    console.error('Failed to load version info:', error);
+  }
+}
+
 async function main() {
   initializeBodyStyles();
   
@@ -258,6 +278,8 @@ async function main() {
   } else {
     drawHabitSummary(habit);
   }
+
+  await drawHabitFooter();
 }
 
 main()
