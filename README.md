@@ -11,7 +11,7 @@ First, download a [binary](https://github.com/brk3/habits/releases) for your OS.
 
 Then start a server and habits API:
 ```
-docker-compose up -d
+docker compose up -d
 ```
 
 Track a habit!

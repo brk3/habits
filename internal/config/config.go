@@ -11,7 +11,7 @@ type Config struct {
 
 func Load() Config {
 	cfg := Config{
-		APIBaseURL: getenv("HABITS_API_BASE", "http://localhost:8080"),
+		APIBaseURL: getenv("HABITS_API_BASE", "http://localhost:8080/api"),
 		DBPath:     getenv("HABITS_DB_PATH", "habits.db"),
 	}
 	return cfg
