@@ -4,6 +4,11 @@
     reverse_proxy http://habits-server:8080
   }
 
+  @health path /healthz /readyz /version
+  handle @health {
+    reverse_proxy http://habits-server:8080
+  }
+
   @api path /api/*
   handle @api {
     uri strip_prefix /api
