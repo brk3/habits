@@ -4,47 +4,54 @@ import CalHeatmap from 'cal-heatmap';
 import 'cal-heatmap/cal-heatmap.css';
 
 // Set the body background to adapt to dark mode
-document.body.className = 'bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200';
+function initializeBodyStyles() {
+  document.body.className = 'bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200';
+}
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div class="max-w-5xl mx-auto p-6">
-    <div id="title" class="text-3xl font-bold mb-6 text-gray-900 dark:text-white"></div>
+function drawHabitSummary(habit: string) {
+  document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+    <div class="max-w-5xl mx-auto p-6">
+      <div id="title" class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">${toTitleCase(habit)}</div>
 
-    <!-- Top row of 3 cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="current-streak">
-        <div class="text-lg text-gray-700 dark:text-gray-300">🔥 Current Streak</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+      <!-- Top row of 3 cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="current-streak">
+          <div class="text-lg text-gray-700 dark:text-gray-300">🔥 Current Streak</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="longest-streak">
+          <div class="text-lg text-gray-700 dark:text-gray-300">🏅 Longest Streak</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="month-progress">
+          <div class="text-lg text-gray-700 dark:text-gray-300">📅 This Month</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        </div>
       </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="longest-streak">
-        <div class="text-lg text-gray-700 dark:text-gray-300">🏅 Longest Streak</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+
+      <!-- Second row of 3 cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="total-days">
+          <div class="text-lg text-gray-700 dark:text-gray-300">Total Days Done</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="best-month">
+          <div class="text-lg text-gray-700 dark:text-gray-300">Best Month</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="first-logged">
+          <div class="text-lg text-gray-700 dark:text-gray-300">First Logged</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        </div>
       </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="month-progress">
-        <div class="text-lg text-gray-700 dark:text-gray-300">📅 This Month</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
-      </div>
+
+      <div id="cal-heatmap" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md dark:shadow-gray-700/30 flex justify-center"></div>
     </div>
+  `;
 
-    <!-- Second row of 3 cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="total-days">
-        <div class="text-lg text-gray-700 dark:text-gray-300">Total Days Done</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="best-month">
-        <div class="text-lg text-gray-700 dark:text-gray-300">Best Month</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="first-logged">
-        <div class="text-lg text-gray-700 dark:text-gray-300">First Logged</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
-      </div>
-    </div>
-
-    <div id="cal-heatmap" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md dark:shadow-gray-700/30 flex justify-center"></div>
-  </div>
-`;
+  drawSummaryStats(habit);
+  drawHabitHeatmap(habit);
+}
 
 type HeatmapDatum = {
   t: number;       // timestamp in milliseconds (start of day)
@@ -242,14 +249,15 @@ async function drawHabitsList() {
   }
 }
 
-// main
-const habit = getHabitFromURL();
-if (!habit) {
-  drawHabitsList();
-} else {
-  document.querySelector<HTMLHeadingElement>('#title')!.innerHTML = `
-    ${toTitleCase(habit)}
-  `;
-  drawSummaryStats(habit);
-  drawHabitHeatmap(habit);
+async function main() {
+  initializeBodyStyles();
+  
+  const habit = getHabitFromURL();
+  if (!habit) {
+    await drawHabitsList();
+  } else {
+    drawHabitSummary(habit);
+  }
 }
+
+main()

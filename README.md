@@ -16,7 +16,6 @@ docker compose up -d
 
 Track a habit!
 ```
-export HABITS_API_BASE=http://localhost:8080/api
 habit track running '5km in park'
 ```
 
