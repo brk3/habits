@@ -18,15 +18,15 @@ function drawHabitSummary(habit: string) {
       <!-- Top row of 3 cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="current-streak">
-          <div class="text-lg text-gray-700 dark:text-gray-300">🔥 Current Streak</div>
+          <div class="text-lg text-gray-700 dark:text-gray-300">Current Streak</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="longest-streak">
-          <div class="text-lg text-gray-700 dark:text-gray-300">🏅 Longest Streak</div>
+          <div class="text-lg text-gray-700 dark:text-gray-300">Longest Streak</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="month-progress">
-          <div class="text-lg text-gray-700 dark:text-gray-300">📅 This Month</div>
+          <div class="text-lg text-gray-700 dark:text-gray-300">This Month</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
       </div>
