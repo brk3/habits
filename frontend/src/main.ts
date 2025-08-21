@@ -1,6 +1,8 @@
 import './style.css'
 // @ts-expect-error: No type definitions for 'cal-heatmap'
 import CalHeatmap from 'cal-heatmap';
+// @ts-expect-error: No type definitions for 'cal-heatmap'
+import Tooltip from 'cal-heatmap/plugins/Tooltip';
 import 'cal-heatmap/cal-heatmap.css';
 
 // Set the body background to adapt to dark mode
@@ -109,49 +111,59 @@ async function fetchVersionInfo(): Promise<{ Version: string; BuildDate: string 
 async function drawHabitHeatmap(habit: string) {
   const data = await fetchHabit(habit);
   console.log("Data for heatmap:", data);
-
-  const timestamps = data.map(d => d.t);
-  const earliest = new Date(Math.min(...timestamps));
-  console.log("Start date for heatmap:", earliest.toISOString());
-
   const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
-  
+
   const cal = new CalHeatmap();
-  cal.paint({
-    itemSelector: "#cal-heatmap",
-    range: 12,
-    domain: {
-      type: 'month',
-      label: {
-        position: 'top',
-        text: 'MMM',
-        textColor: darkMode ? '#ffffff' : '#374151',
+  cal.paint(
+    {
+      itemSelector: "#cal-heatmap",
+      range: 12,
+      domain: {
+        type: 'month',
+        label: {
+          position: 'top',
+          text: 'MMM',
+          textColor: darkMode ? '#ffffff' : '#374151',
+        },
+      },
+      subDomain: {
+        type: 'day',
+        radius: 2,
+        width: 13,
+        height: 13,
+      },
+      date: {
+        start: new Date(new Date().getFullYear(), 0, 1),
+        end: new Date(new Date().getFullYear(), 11, 31),
+      },
+      data: {
+        source: data,
+        type: 'json',
+        x: 't',
+        y: 'p',
+      },
+      scale: {
+        color: {
+          range: darkMode
+            ? ['#374151', '#22c55e'] 
+            : ['#e5e7eb', '#22c55e'],
+          domain: [0, 1],
+        },
       },
     },
-    subDomain: {
-      type: 'day',
-      radius: 2,
-      width: 13,
-      height: 13,
-    },
-    date: {
-      start: new Date(earliest),
-    },
-    data: {
-      source: data,
-      type: 'json',
-      x: 't',
-      y: 'p',
-    },
-    scale: {
-      color: {
-        range: darkMode 
-          ? ['#374151', '#22c55e'] // Dark mode: darker gray to green
-          : ['#e5e7eb', '#22c55e'], // Light mode: light gray to green
-        domain: [0, 1],
-      },
-    },
-  });
+    [
+      [
+        Tooltip,
+        {
+          text: function (): string {
+            return (
+              'hello!'
+            );
+          },
+        },
+      ],
+    ]
+  );
 }
 
 function toTitleCase(str: string): string {
