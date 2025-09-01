@@ -72,7 +72,7 @@ async function fetchHabit(habit: string): Promise<HeatmapDatum[]> {
     const timestamp = entry.timestamp * 1000; // Convert to milliseconds
     counts[timestamp] = (counts[timestamp] || 0) + 1;
   }
-  
+
   const result: HeatmapDatum[] = Object.entries(counts).map(([t, p]) => ({
     t: Number(t),
     p,
@@ -145,7 +145,7 @@ async function drawHabitHeatmap(habit: string) {
       scale: {
         color: {
           range: darkMode
-            ? ['#374151', '#22c55e'] 
+            ? ['#374151', '#22c55e']
             : ['#e5e7eb', '#22c55e'],
           domain: [0, 1],
         },
@@ -232,7 +232,7 @@ async function drawHabitsList() {
   try {
     const habits = await fetchHabits();
     const habitsList = document.querySelector('#habits-list')!;
-    
+
     if (habits.length === 0) {
       habitsList.innerHTML = `
         <div class="p-4 text-gray-600 dark:text-gray-400">
@@ -242,14 +242,23 @@ async function drawHabitsList() {
       return;
     }
 
-    habitsList.innerHTML = habits
-      .sort((a, b) => a.localeCompare(b))
-      .map(habit => `
-        <a href="/habits/${habit}" 
+    // Fetch summaries for all habits
+    const summaries = await Promise.all(
+      habits.map(async habit => ({
+        name: habit,
+        summary: await fetchHabitSummary(habit)
+      }))
+    );
+
+    habitsList.innerHTML = summaries
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(({ name, summary }) => `
+        <a href="/habits/${name}"
            class="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
           <div class="flex items-center justify-between">
             <span class="text-lg font-medium text-gray-900 dark:text-white">
-              ${toTitleCase(habit)}
+              ${toTitleCase(name)}
+              ${summary.habit_summary.current_streak > 1 ? '🔥' : ''}
             </span>
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -275,7 +284,7 @@ async function drawHabitFooter() {
     const footer = document.createElement('div');
     var link = "https://github.com/brk3/habits/commits/main"
     if (versionInfo.Version != "dev") {
-      link = "https://github.com/brk3/habits/commit/${versionInfo.Version}"
+      link = `https://github.com/brk3/habits/commit/${versionInfo.Version}`
     }
     footer.className = 'text-right max-w-5xl mx-auto mt-8 mb-4 px-6 text-xs text-gray-400 dark:text-gray-500';
     footer.innerHTML = `
@@ -291,7 +300,7 @@ async function drawHabitFooter() {
 
 async function main() {
   initializeBodyStyles();
-  
+
   const habit = getHabitFromURL();
   if (!habit) {
     await drawHabitsList();

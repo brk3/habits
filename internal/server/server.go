@@ -172,7 +172,6 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// After successfully tracking a habit, update active habits metric
 	habits, _ := s.Store.ListHabitNames()
 	activeHabits.Set(float64(len(habits)))
 
