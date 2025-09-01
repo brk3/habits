@@ -30,9 +30,7 @@ make build
 make server
 
 # Start a frontend
-cd frontend
-npm install
-npm run dev
+make frontend
 
 # Track a habit with a note
 habits track guitar "practiced riffs"
