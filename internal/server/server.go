@@ -71,6 +71,7 @@ func (s *Server) Router() http.Handler {
 		r.Get("/", s.listHabits)
 		r.Get("/{habit_id}", s.getHabit)
 		r.Get("/{habit_id}/summary", s.getHabitSummary)
+		r.Delete("/{habit_id}", s.deleteHabit)
 	})
 
 	return r
@@ -206,6 +207,25 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
 		return
 	}
+}
+
+func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "habit_id")
+	if id == "" {
+		http.Error(w, `{"error":"habit id is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	err := s.Store.DeleteHabit(id)
+	if err != nil {
+		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	habits, _ := s.Store.ListHabitNames()
+	activeHabits.Set(float64(len(habits)))
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func validateHabit(h habit.Habit) error {

@@ -324,6 +324,26 @@ func TestGetHabitSummary_BestMonth(t *testing.T) {
 	}
 }
 
+func TestDeleteHabit(t *testing.T) {
+	st := newMemStore()
+	h := newTestServer(st)
+
+	rr := mockRequest(h, http.MethodPost, "/habits/",
+		habit.Habit{
+			Name:      "guitar",
+			Note:      "scales",
+			TimeStamp: time.Now().Unix(),
+		})
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("got %d want 201", rr.Code)
+	}
+
+	rr = mockRequest(h, http.MethodDelete, "/habits/guitar", nil)
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("got %d want 204 No Content", rr.Code)
+	}
+}
+
 func newTestServer(st storage.Store) http.Handler {
 	s := New(st)
 	return s.Router()

@@ -83,5 +83,18 @@ func (s *Store) GetHabit(name string) ([]habit.Habit, error) {
 	return out, err
 }
 
+func (s *Store) DeleteHabit(name string) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		c := tx.Bucket(s.bucket).Cursor()
+		prefix := []byte(name + "/")
+		for k, _ := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, _ = c.Next() {
+			if err := c.Delete(); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // compile-time check
 var _ storage.Store = (*Store)(nil)

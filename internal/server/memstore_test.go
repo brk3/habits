@@ -51,10 +51,15 @@ func (m *memStore) GetHabitSummary(name string) (habit.HabitSummary, error) {
 	summary := habit.HabitSummary{
 		Name: name,
 	}
-
-	// TODO(pbourke): Implement summary test
-
 	return summary, nil
+}
+
+func (m *memStore) DeleteHabit(name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	delete(m.data, name)
+	return nil
 }
 
 func (m *memStore) Close() error {
