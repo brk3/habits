@@ -9,15 +9,16 @@ import (
 )
 
 var (
-	emailFlag string
-	hoursFlag int
+	emailFlag    string
+	hoursFlag    int
+	resendApiKey string
 )
 
 var nudgeCmd = &cobra.Command{
 	Use:   "nudge",
 	Short: "Send a reminder for habit streaks expiring within a certain window",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if os.Getenv("RESEND_API_KEY") == "" {
+		if resendApiKey = os.Getenv("RESEND_API_KEY"); resendApiKey == "" {
 			return fmt.Errorf("RESEND_API_KEY environment variable is not set")
 		}
 		if emailFlag == "" {
@@ -29,7 +30,7 @@ var nudgeCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		nudge.Nudge(emailFlag, hoursFlag)
+		nudge.Nudge(emailFlag, hoursFlag, resendApiKey)
 	},
 }
 
