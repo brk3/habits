@@ -34,6 +34,7 @@ jobs:
     - name: Upload release assets
       uses: softprops/action-gh-release@v1
       with:
+        generate_release_notes: true
         files: |
           dist/habits-linux
           dist/habits-linux-arm64
