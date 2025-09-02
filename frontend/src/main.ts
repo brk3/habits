@@ -283,9 +283,6 @@ async function drawHabitFooter() {
     const versionInfo = await fetchVersionInfo();
     const footer = document.createElement('div');
     var link = "https://github.com/brk3/habits/commits/main"
-    if (versionInfo.Version != "dev") {
-      link = `https://github.com/brk3/habits/commit/${versionInfo.Version}`
-    }
     footer.className = 'text-right max-w-5xl mx-auto mt-8 mb-4 px-6 text-xs text-gray-400 dark:text-gray-500';
     footer.innerHTML = `
       <a href="${link}" class="hover:text-gray-600 dark:hover:text-gray-300"
