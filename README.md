@@ -16,7 +16,7 @@ docker compose up -d
 
 Track a habit!
 ```
-habit track running '5km in park'
+habits track running '5km in park'
 ```
 
 Open localhost:8080/habits/{habit} to view stats for your habit.
