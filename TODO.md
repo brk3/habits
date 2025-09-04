@@ -9,6 +9,8 @@
 - [ ] Motivation messages in API
 - [ ] DB backups
 - [ ] Expand on metrics, add prom queries
+- [ ] Nicer output from cli
+- [ ] Basic auth
 - [X] Make heatmap show current year (1-12)
 - [X] Summary frontend page
 - [X] Make HABITS_API_BASE default to localhost
@@ -20,7 +22,3 @@
 - [X] Separate server logic from cmd package
 - [X] Build / auto deploy server to raspberry pi
 - [X] /version endpoint
-
-# Ideas
-- [ ] Nicer output from cli
-- [ ] Basic auth
