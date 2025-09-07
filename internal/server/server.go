@@ -230,7 +230,7 @@ func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
 
 func validateHabit(h habit.Habit) error {
 	const maxNameLength = 20
-	const maxNoteLength = 200
+	const maxNoteLength = 1024
 	const minTS = 946684800
 	const maxTS = 4102444800
 
