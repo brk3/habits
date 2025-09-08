@@ -30,7 +30,11 @@ var nudgeCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		nudge.Nudge(notifyEmail, nudgeThreshold, resendApiKey)
+		n := nudge.ResendNotifier{
+			ApiKey: resendApiKey,
+			Email:  notifyEmail,
+		}
+		nudge.Nudge(&n, nudgeThreshold)
 	},
 }
 

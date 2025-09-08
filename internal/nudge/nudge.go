@@ -9,28 +9,18 @@ import (
 	"github.com/brk3/habits/internal/config"
 )
 
-// TODO(pbourke): make config params
-func Nudge(email string, hours int, resendApiKey string) {
+func Nudge(n Notifier, nudgeThreshold int) {
 	cfg := config.Load()
 	apiclient := apiclient.New(cfg.APIBaseURL)
-	expiring, err := GetHabitsExpiringIn(context.Background(), apiclient, time.Now().UTC(), time.Duration(hours)*time.Hour)
+	expiring, err := GetHabitsExpiringIn(context.Background(), apiclient,
+		time.Now().UTC(), time.Duration(nudgeThreshold)*time.Hour)
 	if err != nil {
 		fmt.Println("error getting expiring habits:", err)
 	}
-	/*
-		client := resend.NewClient(resendApiKey)
-		params := &resend.SendEmailRequest{
-			From:    "onboarding@resend.dev",
-			To:      []string{"pauldbourke@protonmail.com"},
-			Subject: "Hello World",
-			Html:    "<p>Congrats on sending your <strong>first email</strong>!</p>",
-		}
-		client.Emails.Send(params)
-	*/
-	fmt.Printf("habits expiring soon: %v\n", expiring)
+	n.SendNudge(expiring, nudgeThreshold)
 }
 
-func GetHabitsExpiringIn(ctx context.Context, q Querier, now time.Time, within time.Duration) ([]string, error) {
+func GetHabitsExpiringIn(ctx context.Context, q Querier, now time.Time, in time.Duration) ([]string, error) {
 	habits, err := q.ListHabits(ctx)
 	if err != nil {
 		return nil, err
@@ -43,7 +33,7 @@ func GetHabitsExpiringIn(ctx context.Context, q Querier, now time.Time, within t
 			return nil, err
 		}
 		cutoff := time.Unix(h.LastWrite, 0).Add(24 * time.Hour)
-		if h.CurrentStreak > 0 && now.Before(cutoff) && cutoff.Sub(now) <= within {
+		if h.CurrentStreak > 0 && now.Before(cutoff) && cutoff.Sub(now) <= in {
 			expiring = append(expiring, h.Name)
 		}
 	}
