@@ -1,4 +1,5 @@
 # TODO
+- [ ] Cut a minor release on next main feature addition
 - [ ] Reminders
 - [ ] Simple username based segregation
 - [ ] Improve summary page
@@ -7,10 +8,10 @@
 - [ ] Fix release notes in release build
 - [ ] Add frontend package to release build
 - [ ] Motivation messages in API
-- [ ] DB backups
 - [ ] Expand on metrics, add prom queries
 - [ ] Nicer output from cli
 - [ ] Basic auth
+- [X] DB backups
 - [X] Make heatmap show current year (1-12)
 - [X] Summary frontend page
 - [X] Make HABITS_API_BASE default to localhost
