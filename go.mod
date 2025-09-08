@@ -7,7 +7,6 @@ toolchain go1.23.11
 require (
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/prometheus/client_golang v1.23.0
-	github.com/resend/resend-go/v2 v2.23.0
 	github.com/spf13/cobra v1.9.1
 	go.etcd.io/bbolt v1.4.2
 )

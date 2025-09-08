@@ -9,8 +9,7 @@ import (
 )
 
 var (
-	emailFlag    string
-	hoursFlag    int
+	notifyEmail  string
 	resendApiKey string
 )
 
@@ -21,25 +20,28 @@ var nudgeCmd = &cobra.Command{
 		if resendApiKey = os.Getenv("RESEND_API_KEY"); resendApiKey == "" {
 			return fmt.Errorf("RESEND_API_KEY environment variable is not set")
 		}
-		if emailFlag == "" {
-			return fmt.Errorf("--email is required")
+		if notifyEmail = os.Getenv("NOTIFY_EMAIL"); notifyEmail == "" {
+			return fmt.Errorf("NOTIFY_EMAIL environment variable is not set")
 		}
-		if hoursFlag <= 0 {
-			return fmt.Errorf("--hours must be greater than 0")
+		if notifyHourBeforeMidnightEnv := os.Getenv("NOTIFY_HOUR_BEFORE_MIDNIGHT"); notifyHourBeforeMidnightEnv == "" {
+			return fmt.Errorf("NOTIFY_HOUR_BEFORE_MIDNIGHT environment variable is not set")
 		}
+		// TODO(pbourke): finish rest of cfg vars
+		/*
+			if emailFlag == "" {
+				return fmt.Errorf("--email is required")
+			}
+			if hoursFlag <= 0 {
+				return fmt.Errorf("--hours must be greater than 0")
+			}
+		*/
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		nudge.Nudge(emailFlag, hoursFlag, resendApiKey)
+		nudge.Nudge("", 2, resendApiKey)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(nudgeCmd)
-
-	nudgeCmd.Flags().StringVar(&emailFlag, "email", "", "Email address (required)")
-	nudgeCmd.Flags().IntVar(&hoursFlag, "hours", 0, "Number of hours spent (required)")
-
-	nudgeCmd.MarkFlagRequired("email")
-	nudgeCmd.MarkFlagRequired("hours")
 }

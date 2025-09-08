@@ -37,18 +37,13 @@ func GetHabitsExpiringIn(ctx context.Context, q Querier, now time.Time, within t
 	}
 
 	var expiring []string
-	// TODO(pbourke): add tz arg
-	midnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, time.UTC)
-	cutoff := midnight.Add(-within)
-	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-
 	for _, habitKey := range habits {
 		h, err := q.GetHabitSummary(ctx, habitKey)
 		if err != nil {
 			return nil, err
 		}
-		// if we're on a streak, we haven't logged today, and its with threshold of midnight, nudge
-		if h.CurrentStreak > 0 && time.Unix(h.LastWrite, 0).Before(startOfToday) && !now.Before(cutoff) {
+		cutoff := time.Unix(h.LastWrite, 0).Add(24 * time.Hour)
+		if h.CurrentStreak > 0 && now.Before(cutoff) && cutoff.Sub(now) <= within {
 			expiring = append(expiring, h.Name)
 		}
 	}

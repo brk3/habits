@@ -9,19 +9,18 @@ import (
 )
 
 func TestGetHabitsExpiringIn(t *testing.T) {
-	// now is 10pm on Jan 1, 2024 UTC
-	now := time.Date(2024, 1, 2, 22, 0, 0, 0, time.UTC)
+	within := 2 * time.Hour
 
-	// last write was yesterday evening
+	// last write was 20:00 on Jan 1, 2024 UTC
 	lastWrite := time.Date(2024, 1, 1, 20, 0, 0, 0, time.UTC)
 
-	// nudge threshold is 2 hours
-	within := 2 * time.Hour
+	// now is 18:00 on Jan 1, 2024 UTC - 2 hours to go until threshold
+	now := time.Date(2024, 1, 2, 18, 0, 0, 0, time.UTC)
 
 	f := &mockClient{
 		habits: []string{"guitar", "coding"},
 		summary: map[string]*habit.HabitSummary{
-			"guitar": {Name: "guitar", CurrentStreak: 3, LastWrite: lastWrite.Unix()}, // active streak
+			"guitar": {Name: "guitar", CurrentStreak: 3, LastWrite: lastWrite.Unix()},
 			"coding": {Name: "coding", CurrentStreak: 0, LastWrite: lastWrite.Unix()},
 		},
 	}
@@ -36,19 +35,18 @@ func TestGetHabitsExpiringIn(t *testing.T) {
 }
 
 func TestGetHabitsExpiringIn_NoneExpiring(t *testing.T) {
-	// now is 10pm on Jan 1, 2024 UTC
-	now := time.Date(2024, 1, 2, 22, 0, 0, 0, time.UTC)
+	within := 2 * time.Hour
 
-	// last write was today
+	// last write was today (extending streak, no nudge needed)
 	lastWrite := time.Date(2024, 1, 2, 20, 0, 0, 0, time.UTC)
 
-	// nudge threshold is 2 hours
-	within := 2 * time.Hour
+	// now is 10pm on Jan 1, 2024 UTC
+	now := time.Date(2024, 1, 2, 22, 0, 0, 0, time.UTC)
 
 	f := &mockClient{
 		habits: []string{"guitar", "coding"},
 		summary: map[string]*habit.HabitSummary{
-			"guitar": {Name: "guitar", CurrentStreak: 3, LastWrite: lastWrite.Unix()}, // active streak
+			"guitar": {Name: "guitar", CurrentStreak: 3, LastWrite: lastWrite.Unix()},
 			"coding": {Name: "coding", CurrentStreak: 0, LastWrite: lastWrite.Unix()},
 		},
 	}
