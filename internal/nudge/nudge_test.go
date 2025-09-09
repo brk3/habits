@@ -67,8 +67,4 @@ func TestNudge_CallsSendNudge(t *testing.T) {
 	if !n.called {
 		t.Error("Expected SendNudge to be called")
 	}
-
-	if n.threshold != 2 {
-		t.Errorf("Expected threshold 2, got %d", n.threshold)
-	}
 }

@@ -1,6 +1,9 @@
 package nudge
 
 import (
+	"bytes"
+	"html/template"
+
 	"github.com/resend/resend-go/v2"
 )
 
@@ -9,15 +12,42 @@ type ResendNotifier struct {
 	Email  string
 }
 
+const htmlTemplate = `
+<p>The following habits are expiring within the next {{.Hours}} hours:</p>
+<ul>
+{{range .Habits}}
+  <li>{{.}}</li>
+{{end}}
+</ul>
+`
+
 func (r *ResendNotifier) SendNudge(habits []string, hoursTillExpiry int) error {
+	tmpl, err := template.New("email").Parse(htmlTemplate)
+	if err != nil {
+		return err
+	}
+
+	data := struct {
+		Habits []string
+		Hours  int
+	}{
+		Habits: habits,
+		Hours:  hoursTillExpiry,
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return err
+	}
+
 	client := resend.NewClient(r.ApiKey)
 	params := &resend.SendEmailRequest{
-		// TODO(pbourke): figure out good values for these
 		From:    "onboarding@resend.dev",
 		To:      []string{r.Email},
-		Subject: "Hello World",
-		Html:    "<p>Congrats on sending your <strong>first email</strong>!</p>",
+		Subject: "Streaks are expiring soon",
+		Html:    buf.String(),
 	}
-	client.Emails.Send(params)
-	return nil
+
+	_, err = client.Emails.Send(params)
+	return err
 }
