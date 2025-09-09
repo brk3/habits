@@ -8,10 +8,13 @@ Habits is built on the idea that small, consistent actions yield the best result
 
 ![Screenshot](./screenshot.png)
 
-## Quickstart
-First, download a [binary](https://github.com/brk3/habits/releases) for your OS.
+## Install
+```
+curl -fsSL https://raw.githubusercontent.com/brk3/habits/main/install.sh | bash
+```
 
-Then start a server and habits API:
+## Quickstart
+Start a server and habits API:
 ```
 docker compose up -d
 ```
