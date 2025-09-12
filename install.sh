@@ -4,6 +4,7 @@ set -euo pipefail
 
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
+DEST="/usr/local/bin"
 
 case $OS in
     linux)
@@ -17,9 +18,12 @@ case $OS in
     *) echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 
-echo "Downloading $BINARY..."
-curl -SsL "https://github.com/brk3/habits/releases/latest/download/$BINARY" -o habits
-chmod +x habits
+# make a new tempfile and the accompanying cleanup trap
+tmpfile="$(mktemp)"
+trap 'rm -rf "${tmpfile}"' EXIT
 
-echo "Installing to /usr/local/bin..."
-sudo mv habits /usr/local/bin/
+echo "Downloading $BINARY..."
+curl -SsL "https://github.com/brk3/habits/releases/latest/download/$BINARY" -o "${tmpfile}"
+
+echo "Installing to ${DEST}..."
+sudo install -m 0755 -o root -g root "${tmpfile}" "${DEST}/habits"
