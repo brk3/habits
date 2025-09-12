@@ -26,4 +26,4 @@ echo "Downloading $BINARY..."
 curl -SsL "https://github.com/brk3/habits/releases/latest/download/$BINARY" -o "${tmpfile}"
 
 echo "Installing to ${DEST}..."
-sudo install -m 0755 -o root -g root "${tmpfile}" "${DEST}/habits"
+sudo install -m 0755 "${tmpfile}" "${DEST}/habits"
