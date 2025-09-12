@@ -1,16 +1,16 @@
 # TODO
-- [ ] Cut a minor release on next main feature addition
-- [ ] Reminders
 - [ ] Simple username based segregation
 - [ ] Improve summary page
 - [ ] Add TLS for frontend
 - [ ] Better logging
-- [ ] Fix release notes in release build
 - [ ] Add frontend package to release build
 - [ ] Motivation messages in API
 - [ ] Expand on metrics, add prom queries
 - [ ] Nicer output from cli
 - [ ] Basic auth
+- [X] Fix release notes in release build
+- [X] Cut a minor release on next main feature addition
+- [X] Reminders
 - [X] DB backups
 - [X] Make heatmap show current year (1-12)
 - [X] Summary frontend page
