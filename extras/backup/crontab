@@ -1,1 +1,0 @@
-0 10 * * * /usr/bin/scp raspberrypi:~/habits_db/habits.db ~/habits.db
