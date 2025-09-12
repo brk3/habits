@@ -13,7 +13,7 @@ type ResendNotifier struct {
 }
 
 const htmlTemplate = `
-<p>The following habits are expiring within the next {{.Hours}} hours:</p>
+<p>The following habit streaks are expiring within the next {{.Hours}} hours:</p>
 <ul>
 {{range .Habits}}
   <li>{{.}}</li>
@@ -34,7 +34,6 @@ func (r *ResendNotifier) SendNudge(habits []string, hoursTillExpiry int) error {
 		Habits: habits,
 		Hours:  hoursTillExpiry,
 	}
-
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return err

@@ -1,0 +1,14 @@
+# habits API endpoint
+export HABITS_API_BASE=http://localhost:8080/api
+
+# resend.com API key (free) for notifications
+export HABITS_RESEND_API_KEY=
+
+# address to send notifications
+export HABITS_NOTIFY_EMAIL=
+
+# hours till an active habit streak expires
+export HABITS_NUDGE_THRESHOLD=3
+
+# habits database location
+export HABITS_DB_PATH=./habits.db

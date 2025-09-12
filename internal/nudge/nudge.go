@@ -3,6 +3,7 @@ package nudge
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/brk3/habits/internal/apiclient"
@@ -17,7 +18,11 @@ func Nudge(n Notifier, nudgeThreshold int) {
 	if err != nil {
 		fmt.Println("error getting expiring habits:", err)
 	}
-	n.SendNudge(expiring, nudgeThreshold)
+	fmt.Printf("expiring habits: %s\n", strings.Join(expiring, ", "))
+
+	if len(expiring) > 0 {
+		n.SendNudge(expiring, nudgeThreshold)
+	}
 }
 
 func GetHabitsExpiringIn(ctx context.Context, q Querier, now time.Time, in time.Duration) ([]string, error) {
@@ -26,7 +31,7 @@ func GetHabitsExpiringIn(ctx context.Context, q Querier, now time.Time, in time.
 		return nil, err
 	}
 
-	var expiring []string
+	expiring := []string{}
 	for _, habitKey := range habits {
 		h, err := q.GetHabitSummary(ctx, habitKey)
 		if err != nil {

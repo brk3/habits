@@ -43,11 +43,5 @@ habits track guitar "practiced riffs"
 # > Access frontend on localhost:5173/habits/{habit}
 ```
 
-## Environment variables
-```
-HABITS_DB_PATH         # path to SQLite database file (default: ./habits.db)
-HABITS_API_BASE        # API base URL if using remote server
-HABITS_RESEND_API_KEY  # For reminder functionality via resend.com
-HABITS_NOTIFY_EMAIL    # Email to send reminders
-HABITS_NUDGE_THRESHOLD # Threshold in hours to remind if in danger of breaking a streak
-```
+## Configuring
+See [nudgerc](./nudgerc)

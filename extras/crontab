@@ -1,0 +1,8 @@
+# db backup daily 10am
+0 10 * * * /usr/bin/scp raspberrypi:~/habits_db/habits.db ~/habits.db
+
+# keep client up to date
+0 10 * * * /usr/bin/curl -fsSL https://raw.githubusercontent.com/brk3/habits/main/install.sh | bash
+
+# nudge on expiring streaks
+0 9-22 * * * /usr/local/bin/habits nudge

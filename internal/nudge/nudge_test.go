@@ -59,12 +59,3 @@ func TestGetHabitsExpiringIn_NoneExpiring(t *testing.T) {
 		t.Fatalf("got %v, want []", got)
 	}
 }
-
-func TestNudge_CallsSendNudge(t *testing.T) {
-	n := &mockNotifier{}
-	Nudge(n, 2)
-
-	if !n.called {
-		t.Error("Expected SendNudge to be called")
-	}
-}
