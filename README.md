@@ -44,4 +44,4 @@ habits track guitar "practiced riffs"
 ```
 
 ## Configuring
-See [nudgerc](./nudgerc)
+See [habitsrc](./habitsrc)
