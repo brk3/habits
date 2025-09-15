@@ -17,6 +17,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// TODO(pbourke): implement from headers or path
+const userID = "XXX"
+
 var (
 	httpRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -84,31 +87,31 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentStreak, longestSreak, err := s.computeStreaks(id)
+	currentStreak, longestSreak, err := s.computeStreaks(userID, id)
 	if err != nil {
 		http.Error(w, `{"error":"error computing streaks"}`, http.StatusInternalServerError)
 		return
 	}
 
-	firstLogged, err := s.getFirstLogged(id)
+	firstLogged, err := s.getFirstLogged(userID, id)
 	if err != nil {
 		http.Error(w, `{"error":"error retrieving first logged date"}`, http.StatusInternalServerError)
 		return
 	}
 
-	totalDaysDone, err := s.computeTotalDaysDone(id)
+	totalDaysDone, err := s.computeTotalDaysDone(userID, id)
 	if err != nil {
 		http.Error(w, `{"error":"error computing total days done"}`, http.StatusInternalServerError)
 		return
 	}
 
-	daysThisMonth, err := s.computeDaysThisMonth(id)
+	daysThisMonth, err := s.computeDaysThisMonth(userID, id)
 	if err != nil {
 		http.Error(w, `{"error":"error computing days this month"}`, http.StatusInternalServerError)
 		return
 	}
 
-	bestMonth, err := s.computeBestMonth(id)
+	bestMonth, err := s.computeBestMonth(userID, id)
 	if err != nil {
 		http.Error(w, `{"error":"error computing best month"}`, http.StatusInternalServerError)
 		return
@@ -147,7 +150,7 @@ func (s *Server) getVersionInfo(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) listHabits(w http.ResponseWriter, _ *http.Request) {
-	names, err := s.Store.ListHabitNames()
+	names, err := s.Store.ListHabitNames(userID)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return
@@ -168,12 +171,12 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
-	if err := s.Store.PutHabit(h); err != nil {
+	if err := s.Store.PutHabit(userID, h); err != nil {
 		http.Error(w, `{"error":"database write failed"}`, http.StatusInternalServerError)
 		return
 	}
 
-	habits, _ := s.Store.ListHabitNames()
+	habits, _ := s.Store.ListHabitNames(userID)
 	activeHabits.Set(float64(len(habits)))
 
 	if err := writeJSON(w, http.StatusCreated, h); err != nil {
@@ -189,7 +192,7 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entries, err := s.Store.GetHabit(id)
+	entries, err := s.Store.GetHabit(userID, id)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return
@@ -216,13 +219,13 @@ func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := s.Store.DeleteHabit(id)
+	err := s.Store.DeleteHabit(userID, id)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return
 	}
 
-	habits, _ := s.Store.ListHabitNames()
+	habits, _ := s.Store.ListHabitNames(userID)
 	activeHabits.Set(float64(len(habits)))
 
 	w.WriteHeader(http.StatusNoContent)

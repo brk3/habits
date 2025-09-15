@@ -39,7 +39,7 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
-func (s *Store) PutHabit(h habit.Habit) error {
+func (s *Store) PutHabit(userID string, h habit.Habit) error {
 	val, _ := json.Marshal(h)
 	key := fmt.Appendf(nil, "%s/%s", h.Name, time.Unix(h.TimeStamp, 0).Format(time.RFC3339))
 	return s.db.Update(func(tx *bbolt.Tx) error {
@@ -47,7 +47,7 @@ func (s *Store) PutHabit(h habit.Habit) error {
 	})
 }
 
-func (s *Store) ListHabitNames() ([]string, error) {
+func (s *Store) ListHabitNames(userID string) ([]string, error) {
 	uniq := map[string]struct{}{}
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		return tx.Bucket(s.bucket).ForEach(func(k, _ []byte) error {
@@ -66,7 +66,7 @@ func (s *Store) ListHabitNames() ([]string, error) {
 	return out, nil
 }
 
-func (s *Store) GetHabit(name string) ([]habit.Habit, error) {
+func (s *Store) GetHabit(userID, name string) ([]habit.Habit, error) {
 	var out []habit.Habit
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		c := tx.Bucket(s.bucket).Cursor()
@@ -83,7 +83,7 @@ func (s *Store) GetHabit(name string) ([]habit.Habit, error) {
 	return out, err
 }
 
-func (s *Store) DeleteHabit(name string) error {
+func (s *Store) DeleteHabit(userID, name string) error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		c := tx.Bucket(s.bucket).Cursor()
 		prefix := []byte(name + "/")
@@ -96,5 +96,4 @@ func (s *Store) DeleteHabit(name string) error {
 	})
 }
 
-// compile-time check
 var _ storage.Store = (*Store)(nil)

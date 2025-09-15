@@ -16,7 +16,7 @@ func newMemStore() *memStore {
 	return &memStore{data: map[string][]habit.Habit{}}
 }
 
-func (m *memStore) PutHabit(h habit.Habit) error {
+func (m *memStore) PutHabit(userID string, h habit.Habit) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -25,7 +25,7 @@ func (m *memStore) PutHabit(h habit.Habit) error {
 	return nil
 }
 
-func (m *memStore) ListHabitNames() ([]string, error) {
+func (m *memStore) ListHabitNames(userID string) ([]string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -37,7 +37,7 @@ func (m *memStore) ListHabitNames() ([]string, error) {
 	return out, nil
 }
 
-func (m *memStore) GetHabit(name string) ([]habit.Habit, error) {
+func (m *memStore) GetHabit(userID, name string) ([]habit.Habit, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -54,7 +54,7 @@ func (m *memStore) GetHabitSummary(name string) (habit.HabitSummary, error) {
 	return summary, nil
 }
 
-func (m *memStore) DeleteHabit(name string) error {
+func (m *memStore) DeleteHabit(userID, name string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
