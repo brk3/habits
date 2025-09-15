@@ -20,6 +20,7 @@ import (
 // TODO(pbourke): implement from headers or path
 const userID = "XXX"
 
+// TODO(pbourke): revise in multi user context
 var (
 	httpRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
