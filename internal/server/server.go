@@ -17,9 +17,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// TODO(pbourke): implement from headers or path
-const userID = "XXX"
-
 // TODO(pbourke): revise in multi user context
 var (
 	httpRequestsTotal = promauto.NewCounterVec(
@@ -68,58 +65,62 @@ func (s *Server) Router() http.Handler {
 	r.Use(metricsMiddleware)
 
 	r.Handle("/metrics", promhttp.Handler())
-
 	r.Get("/version", s.getVersionInfo)
-	r.Route("/habits", func(r chi.Router) {
-		r.Post("/", s.trackHabit)
-		r.Get("/", s.listHabits)
-		r.Get("/{habit_id}", s.getHabit)
-		r.Get("/{habit_id}/summary", s.getHabitSummary)
-		r.Delete("/{habit_id}", s.deleteHabit)
+
+	r.Route("/users/{user_id}", func(r chi.Router) {
+		r.Route("/habits", func(r chi.Router) {
+			r.Post("/", s.trackHabit)
+			r.Get("/", s.listHabits)
+			r.Get("/{habit_id}", s.getHabit)
+			r.Get("/{habit_id}/summary", s.getHabitSummary)
+			r.Delete("/{habit_id}", s.deleteHabit)
+		})
 	})
 
 	return r
 }
 
 func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "habit_id")
-	if id == "" {
-		http.Error(w, `{"error":"habit id is required"}`, http.StatusBadRequest)
+	userID := chi.URLParam(r, "user_id")
+	habitID := chi.URLParam(r, "habit_id")
+
+	if userID == "" || habitID == "" {
+		http.Error(w, `{"error":"user id and habit id are required"}`, http.StatusBadRequest)
 		return
 	}
 
-	currentStreak, longestSreak, err := s.computeStreaks(userID, id)
+	currentStreak, longestSreak, err := s.computeStreaks(userID, habitID)
 	if err != nil {
 		http.Error(w, `{"error":"error computing streaks"}`, http.StatusInternalServerError)
 		return
 	}
 
-	firstLogged, err := s.getFirstLogged(userID, id)
+	firstLogged, err := s.getFirstLogged(userID, habitID)
 	if err != nil {
 		http.Error(w, `{"error":"error retrieving first logged date"}`, http.StatusInternalServerError)
 		return
 	}
 
-	totalDaysDone, err := s.computeTotalDaysDone(userID, id)
+	totalDaysDone, err := s.computeTotalDaysDone(userID, habitID)
 	if err != nil {
 		http.Error(w, `{"error":"error computing total days done"}`, http.StatusInternalServerError)
 		return
 	}
 
-	daysThisMonth, err := s.computeDaysThisMonth(userID, id)
+	daysThisMonth, err := s.computeDaysThisMonth(userID, habitID)
 	if err != nil {
 		http.Error(w, `{"error":"error computing days this month"}`, http.StatusInternalServerError)
 		return
 	}
 
-	bestMonth, err := s.computeBestMonth(userID, id)
+	bestMonth, err := s.computeBestMonth(userID, habitID)
 	if err != nil {
 		http.Error(w, `{"error":"error computing best month"}`, http.StatusInternalServerError)
 		return
 	}
 
 	summary := habit.HabitSummary{
-		Name:          id,
+		Name:          habitID,
 		CurrentStreak: currentStreak,
 		LongestStreak: longestSreak,
 		FirstLogged:   firstLogged,
@@ -130,7 +131,7 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	summaryResponse := HabitSummaryResponse{
-		HabitID:      id,
+		HabitID:      habitID,
 		HabitSummary: summary,
 	}
 	if err := writeJSON(w, http.StatusOK, summaryResponse); err != nil {
@@ -150,7 +151,13 @@ func (s *Server) getVersionInfo(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (s *Server) listHabits(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) listHabits(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "user_id")
+	if userID == "" {
+		http.Error(w, `{"error":"user id is required"}`, http.StatusBadRequest)
+		return
+	}
+
 	names, err := s.Store.ListHabitNames(userID)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
@@ -163,6 +170,12 @@ func (s *Server) listHabits(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "user_id")
+	if userID == "" {
+		http.Error(w, `{"error":"user id is required"}`, http.StatusBadRequest)
+		return
+	}
+
 	var h habit.Habit
 	if err := json.NewDecoder(r.Body).Decode(&h); err != nil {
 		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
@@ -187,13 +200,15 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "habit_id")
-	if id == "" {
-		http.Error(w, `{"error":"habit id is required"}`, http.StatusBadRequest)
+	userID := chi.URLParam(r, "user_id")
+	habitID := chi.URLParam(r, "habit_id")
+
+	if userID == "" || habitID == "" {
+		http.Error(w, `{"error":"user id and habit id are required"}`, http.StatusBadRequest)
 		return
 	}
 
-	entries, err := s.Store.GetHabit(userID, id)
+	entries, err := s.Store.GetHabit(userID, habitID)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return
@@ -204,7 +219,7 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h := HabitGetResponse{
-		HabitID: id,
+		HabitID: habitID,
 		Entries: entries,
 	}
 	if err := writeJSON(w, http.StatusOK, h); err != nil {
@@ -214,13 +229,15 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "habit_id")
-	if id == "" {
-		http.Error(w, `{"error":"habit id is required"}`, http.StatusBadRequest)
+	userID := chi.URLParam(r, "user_id")
+	habitID := chi.URLParam(r, "habit_id")
+
+	if userID == "" || habitID == "" {
+		http.Error(w, `{"error":"user id and habit id are required"}`, http.StatusBadRequest)
 		return
 	}
 
-	err := s.Store.DeleteHabit(userID, id)
+	err := s.Store.DeleteHabit(userID, habitID)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return

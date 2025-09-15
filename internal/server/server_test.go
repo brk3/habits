@@ -41,7 +41,7 @@ func TestTrackHabit_Valid(t *testing.T) {
 	st := newMemStore()
 	h := newTestServer(st)
 
-	rr := mockRequest(h, http.MethodPost, "/habits/",
+	rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 		habit.Habit{
 			Name:      "guitar",
 			Note:      "scales",
@@ -51,7 +51,7 @@ func TestTrackHabit_Valid(t *testing.T) {
 		t.Fatalf("got %d want 201", rr.Code)
 	}
 
-	rr = mockRequest(h, http.MethodGet, "/habits/guitar", nil)
+	rr = mockRequest(h, http.MethodGet, "/users/paul/habits/guitar", nil)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("got %d want 200 OK", rr.Code)
 	}
@@ -75,7 +75,7 @@ func TestTrackHabit_Valid(t *testing.T) {
 
 func TestListHabits_Empty(t *testing.T) {
 	h := newTestServer(newMemStore())
-	rr := mockRequest(h, http.MethodGet, "/habits/", nil)
+	rr := mockRequest(h, http.MethodGet, "/users/paul/habits/", nil)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("got %d want 200", rr.Code)
 	}
@@ -91,7 +91,7 @@ func testGetHabitSummary_ActiveStreakSince(t *testing.T, streakLength, since, ex
 	h := newTestServer(newMemStore())
 
 	for i := 0 + since; i < streakLength+since; i++ {
-		rr := mockRequest(h, http.MethodPost, "/habits/",
+		rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 			habit.Habit{
 				Name:      "guitar",
 				Note:      "practice",
@@ -102,7 +102,7 @@ func testGetHabitSummary_ActiveStreakSince(t *testing.T, streakLength, since, ex
 		}
 	}
 
-	rr := mockRequest(h, http.MethodGet, "/habits/guitar/summary", nil)
+	rr := mockRequest(h, http.MethodGet, "/users/paul/habits/guitar/summary", nil)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("got %d want 200", rr.Code)
 	}
@@ -139,9 +139,8 @@ func TestGetHabitSummary_Streak_NotActive(t *testing.T) {
 func TestGetHabitSummary_MultipleStreaks(t *testing.T) {
 	h := newTestServer(newMemStore())
 
-	// streak of 5 starting today
-	for i := 0; i < 5; i++ {
-		rr := mockRequest(h, http.MethodPost, "/habits/",
+	for i := range 5 {
+		rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 			habit.Habit{
 				Name:      "guitar",
 				Note:      "practice",
@@ -152,9 +151,8 @@ func TestGetHabitSummary_MultipleStreaks(t *testing.T) {
 		}
 	}
 
-	// streak of 10 starting 10 days ago
 	for i := 10; i < 20; i++ {
-		rr := mockRequest(h, http.MethodPost, "/habits/",
+		rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 			habit.Habit{
 				Name:      "guitar",
 				Note:      "practice",
@@ -165,7 +163,7 @@ func TestGetHabitSummary_MultipleStreaks(t *testing.T) {
 		}
 	}
 
-	rr := mockRequest(h, http.MethodGet, "/habits/guitar/summary", nil)
+	rr := mockRequest(h, http.MethodGet, "/users/paul/habits/guitar/summary", nil)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("got %d want 200", rr.Code)
 	}
@@ -188,7 +186,7 @@ func TestTrackHabit_WithInvalidTimeStamp(t *testing.T) {
 	st := newMemStore()
 	h := newTestServer(st)
 
-	rr := mockRequest(h, http.MethodPost, "/habits/",
+	rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 		habit.Habit{
 			Name:      "guitar",
 			Note:      "scales",
@@ -203,7 +201,7 @@ func TestGetHabitSummary_FirstLogged(t *testing.T) {
 	h := newTestServer(newMemStore())
 
 	for i := 0; i <= 5; i++ {
-		rr := mockRequest(h, http.MethodPost, "/habits/",
+		rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 			habit.Habit{
 				Name:      "guitar",
 				Note:      "practice",
@@ -214,7 +212,7 @@ func TestGetHabitSummary_FirstLogged(t *testing.T) {
 		}
 	}
 
-	rr := mockRequest(h, http.MethodGet, "/habits/guitar/summary", nil)
+	rr := mockRequest(h, http.MethodGet, "/users/paul/habits/guitar/summary", nil)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("got %d want 200", rr.Code)
 	}
@@ -236,7 +234,7 @@ func TestGetHabitSummary_TotalDaysDone(t *testing.T) {
 
 	// log 5 days of habits
 	for i := 0; i < 5; i++ {
-		rr := mockRequest(h, http.MethodPost, "/habits/",
+		rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 			habit.Habit{
 				Name:      "guitar",
 				Note:      "practice",
@@ -249,7 +247,7 @@ func TestGetHabitSummary_TotalDaysDone(t *testing.T) {
 
 	// log 5 more
 	for i := 10; i < 15; i++ {
-		rr := mockRequest(h, http.MethodPost, "/habits/",
+		rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 			habit.Habit{
 				Name:      "guitar",
 				Note:      "practice",
@@ -260,7 +258,7 @@ func TestGetHabitSummary_TotalDaysDone(t *testing.T) {
 		}
 	}
 
-	rr := mockRequest(h, http.MethodGet, "/habits/guitar/summary", nil)
+	rr := mockRequest(h, http.MethodGet, "/users/paul/habits/guitar/summary", nil)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("got %d want 200", rr.Code)
 	}
@@ -279,12 +277,10 @@ func TestGetHabitSummary_TotalDaysDone(t *testing.T) {
 func TestGetHabitSummary_BestMonth(t *testing.T) {
 	h := newTestServer(newMemStore())
 
-	// Use a fixed date: January 15, 2025
 	baseTime := time.Date(2025, 1, 15, 12, 0, 0, 0, time.UTC)
 
-	// log 5 days of habits in January
 	for i := 0; i < 5; i++ {
-		rr := mockRequest(h, http.MethodPost, "/habits/",
+		rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 			habit.Habit{
 				Name:      "guitar",
 				Note:      "practice",
@@ -295,9 +291,8 @@ func TestGetHabitSummary_BestMonth(t *testing.T) {
 		}
 	}
 
-	// log 3 days in December 2024
 	for i := 15; i < 18; i++ {
-		rr := mockRequest(h, http.MethodPost, "/habits/",
+		rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 			habit.Habit{
 				Name:      "guitar",
 				Note:      "practice",
@@ -308,7 +303,7 @@ func TestGetHabitSummary_BestMonth(t *testing.T) {
 		}
 	}
 
-	rr := mockRequest(h, http.MethodGet, "/habits/guitar/summary", nil)
+	rr := mockRequest(h, http.MethodGet, "/users/paul/habits/guitar/summary", nil)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("got %d want 200", rr.Code)
 	}
@@ -328,7 +323,7 @@ func TestDeleteHabit(t *testing.T) {
 	st := newMemStore()
 	h := newTestServer(st)
 
-	rr := mockRequest(h, http.MethodPost, "/habits/",
+	rr := mockRequest(h, http.MethodPost, "/users/paul/habits/",
 		habit.Habit{
 			Name:      "guitar",
 			Note:      "scales",
@@ -338,7 +333,7 @@ func TestDeleteHabit(t *testing.T) {
 		t.Fatalf("got %d want 201", rr.Code)
 	}
 
-	rr = mockRequest(h, http.MethodDelete, "/habits/guitar", nil)
+	rr = mockRequest(h, http.MethodDelete, "/users/paul/habits/guitar", nil)
 	if rr.Code != http.StatusNoContent {
 		t.Fatalf("got %d want 204 No Content", rr.Code)
 	}
@@ -362,5 +357,8 @@ func mockRequest(h http.Handler, method, path string, body any) *httptest.Respon
 
 	return rr
 }
+
+// TODO(pbourke): user tests
+//func TestUserIsolation(t *testing.T) {
 
 var _ storage.Store = (*memStore)(nil)
