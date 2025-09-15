@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/brk3/habits/internal/nudge"
+	"github.com/brk3/habits/internal/nudge/resend"
+
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +41,7 @@ var nudgeCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		n := nudge.ResendNotifier{
+		n := resend.ResendNotifier{
 			ApiKey: resendApiKey,
 			Email:  notifyEmail,
 		}
