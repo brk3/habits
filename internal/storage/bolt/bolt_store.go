@@ -13,7 +13,6 @@ import (
 )
 
 const rootBucket = "users"
-const defaultUserID = "default"
 
 type Store struct {
 	db *bbolt.DB
@@ -38,17 +37,39 @@ func Open(path string) (*Store, error) {
 	return s, nil
 }
 
+func (s *Store) ensureUserHabitsBucketExists(userID string) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		usersBucket := tx.Bucket([]byte(rootBucket))
+		if usersBucket == nil {
+			return fmt.Errorf("root bucket does not exist")
+		}
+
+		userBucket, err := usersBucket.CreateBucketIfNotExists([]byte(userID))
+		if err != nil {
+			return err
+		}
+
+		_, err = userBucket.CreateBucketIfNotExists([]byte("habits"))
+		return err
+	})
+}
+
 func (s *Store) getUserHabitsBucket(tx *bbolt.Tx, userID string) (*bbolt.Bucket, error) {
-	if userID == "" {
-		userID = defaultUserID
+	usersBucket := tx.Bucket([]byte(rootBucket))
+	if usersBucket == nil {
+		return nil, fmt.Errorf("root bucket does not exist")
 	}
 
-	usersBucket := tx.Bucket([]byte(rootBucket))
-	userBucket, err := usersBucket.CreateBucketIfNotExists([]byte(userID))
-	if err != nil {
-		return nil, err
+	userBucket := usersBucket.Bucket([]byte(userID))
+	if userBucket == nil {
+		return nil, fmt.Errorf("user bucket for %s does not exist", userID)
 	}
-	return userBucket.CreateBucketIfNotExists([]byte("habits"))
+
+	habitsBucket := userBucket.Bucket([]byte("habits"))
+	if habitsBucket == nil {
+		return nil, fmt.Errorf("habits bucket for %s does not exist", userID)
+	}
+	return habitsBucket, nil
 }
 
 func (s *Store) Close() error {
@@ -56,6 +77,9 @@ func (s *Store) Close() error {
 }
 
 func (s *Store) PutHabit(userID string, h habit.Habit) error {
+	if err := s.ensureUserHabitsBucketExists(userID); err != nil {
+		return err
+	}
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := s.getUserHabitsBucket(tx, userID)
 		if err != nil {
@@ -68,6 +92,9 @@ func (s *Store) PutHabit(userID string, h habit.Habit) error {
 }
 
 func (s *Store) ListHabitNames(userID string) ([]string, error) {
+	if err := s.ensureUserHabitsBucketExists(userID); err != nil {
+		return nil, err
+	}
 	uniq := map[string]struct{}{}
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		bucket, err := s.getUserHabitsBucket(tx, userID)
@@ -91,6 +118,9 @@ func (s *Store) ListHabitNames(userID string) ([]string, error) {
 }
 
 func (s *Store) GetHabit(userID, name string) ([]habit.Habit, error) {
+	if err := s.ensureUserHabitsBucketExists(userID); err != nil {
+		return nil, err
+	}
 	var out []habit.Habit
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		bucket, err := s.getUserHabitsBucket(tx, userID)
@@ -112,6 +142,9 @@ func (s *Store) GetHabit(userID, name string) ([]habit.Habit, error) {
 }
 
 func (s *Store) DeleteHabit(userID, name string) error {
+	if err := s.ensureUserHabitsBucketExists(userID); err != nil {
+		return nil
+	}
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := s.getUserHabitsBucket(tx, userID)
 		if err != nil {
