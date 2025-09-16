@@ -17,6 +17,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// TODO(pbourke): parse from token
+const userID = "foo"
+
 // TODO(pbourke): revise in multi user context
 var (
 	httpRequestsTotal = promauto.NewCounterVec(
@@ -67,21 +70,19 @@ func (s *Server) Router() http.Handler {
 	r.Handle("/metrics", promhttp.Handler())
 	r.Get("/version", s.getVersionInfo)
 
-	r.Route("/users/{user_id}", func(r chi.Router) {
-		r.Route("/habits", func(r chi.Router) {
-			r.Post("/", s.trackHabit)
-			r.Get("/", s.listHabits)
-			r.Get("/{habit_id}", s.getHabit)
-			r.Get("/{habit_id}/summary", s.getHabitSummary)
-			r.Delete("/{habit_id}", s.deleteHabit)
-		})
+	r.Route("/habits", func(r chi.Router) {
+		r.Use(authMiddleware)
+		r.Post("/", s.trackHabit)
+		r.Get("/", s.listHabits)
+		r.Get("/{habit_id}", s.getHabit)
+		r.Get("/{habit_id}/summary", s.getHabitSummary)
+		r.Delete("/{habit_id}", s.deleteHabit)
 	})
 
 	return r
 }
 
 func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "user_id")
 	habitID := chi.URLParam(r, "habit_id")
 
 	if userID == "" || habitID == "" {
@@ -152,7 +153,6 @@ func (s *Server) getVersionInfo(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) listHabits(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "user_id")
 	if userID == "" {
 		http.Error(w, `{"error":"user id is required"}`, http.StatusBadRequest)
 		return
@@ -170,7 +170,6 @@ func (s *Server) listHabits(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "user_id")
 	if userID == "" {
 		http.Error(w, `{"error":"user id is required"}`, http.StatusBadRequest)
 		return
@@ -200,7 +199,6 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "user_id")
 	habitID := chi.URLParam(r, "habit_id")
 
 	if userID == "" || habitID == "" {
@@ -229,7 +227,6 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "user_id")
 	habitID := chi.URLParam(r, "habit_id")
 
 	if userID == "" || habitID == "" {
@@ -266,16 +263,4 @@ func validateHabit(h habit.Habit) error {
 	}
 
 	return nil
-}
-
-func metricsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
-		next.ServeHTTP(w, r)
-
-		duration := time.Since(start).Seconds()
-		httpRequestsTotal.WithLabelValues(r.URL.Path, r.Method).Inc()
-		httpRequestDuration.WithLabelValues(r.URL.Path, r.Method).Observe(duration)
-	})
 }

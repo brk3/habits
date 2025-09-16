@@ -7,6 +7,7 @@ import (
 type Config struct {
 	APIBaseURL string
 	DBPath     string
+	APIToken   string
 }
 
 func Load() Config {
