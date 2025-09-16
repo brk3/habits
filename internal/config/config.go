@@ -14,7 +14,7 @@ func Load() Config {
 	cfg := Config{
 		APIBaseURL: getenv("HABITS_API_BASE", "http://localhost:8080"),
 		DBPath:     getenv("HABITS_DB_PATH", "habits.db"),
-		AuthToken:  getenv("HABITS_AUTH_TOKEN", ""),
+		AuthToken:  getenv("HABITS_AUTH_TOKEN", "123"),
 	}
 	return cfg
 }

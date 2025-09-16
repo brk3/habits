@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"io"
-	"net/http"
+	"context"
 
+	"github.com/brk3/habits/internal/apiclient"
 	"github.com/brk3/habits/internal/config"
 	"github.com/spf13/cobra"
 )
@@ -19,21 +19,16 @@ var listCmd = &cobra.Command{
 
 func list(cmd *cobra.Command) {
 	cfg := config.Load()
+	apiclient := apiclient.New(cfg.APIBaseURL, cfg.AuthToken)
 
-	resp, err := http.Get(cfg.APIBaseURL + "/habits")
+	habits, err := apiclient.ListHabits(context.Background())
 	if err != nil {
 		cmd.Println("Error fetching habits:", err)
 		return
 	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		cmd.Println("Error reading response:", err)
-		return
+	for _, h := range habits {
+		cmd.Println(h)
 	}
-
-	cmd.Println(string(body))
 }
 
 func init() {
