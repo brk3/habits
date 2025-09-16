@@ -12,7 +12,7 @@ import (
 
 func Nudge(n Notifier, nudgeThreshold int) {
 	cfg := config.Load()
-	apiclient := apiclient.New(cfg.APIBaseURL)
+	apiclient := apiclient.New(cfg.APIBaseURL, cfg.AuthToken)
 	expiring, err := GetHabitsExpiringIn(context.Background(), apiclient,
 		time.Now().UTC(), time.Duration(nudgeThreshold)*time.Hour)
 	if err != nil {

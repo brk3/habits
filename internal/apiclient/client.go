@@ -10,20 +10,23 @@ import (
 	"github.com/brk3/habits/pkg/habit"
 )
 
-type Client struct {
-	BaseURL string
-	HTTP    *http.Client
+type APIClient struct {
+	BaseURL   string
+	HTTP      *http.Client
+	AuthToken string
 }
 
-func New(base string) *Client {
-	return &Client{
-		BaseURL: base,
-		HTTP:    http.DefaultClient,
+func New(base, authToken string) *APIClient {
+	return &APIClient{
+		BaseURL:   base,
+		HTTP:      http.DefaultClient,
+		AuthToken: authToken,
 	}
 }
 
-func (c *Client) ListHabits(ctx context.Context) ([]string, error) {
+func (c *APIClient) ListHabits(ctx context.Context) ([]string, error) {
 	req, _ := http.NewRequestWithContext(ctx, "GET", c.BaseURL+"/habits", nil)
+	req.Header.Add("Authorization", `Bearer `+c.AuthToken)
 	res, err := c.HTTP.Do(req)
 	if err != nil {
 		return nil, err
@@ -39,7 +42,7 @@ func (c *Client) ListHabits(ctx context.Context) ([]string, error) {
 	return response.Habits, nil
 }
 
-func (c *Client) GetHabitSummary(ctx context.Context, name string) (*habit.HabitSummary, error) {
+func (c *APIClient) GetHabitSummary(ctx context.Context, name string) (*habit.HabitSummary, error) {
 	req, _ := http.NewRequestWithContext(ctx, "GET", c.BaseURL+"/habits/"+name+"/summary", nil)
 	res, err := c.HTTP.Do(req)
 	if err != nil {
