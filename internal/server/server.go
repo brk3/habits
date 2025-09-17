@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,47 +13,63 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/gorilla/securecookie"
+	"golang.org/x/oauth2"
 )
 
-// TODO(pbourke): parse from token
-const userID = "foo"
+// TODO(pbourke): implement from token
+const userID = "XXX"
 
-// TODO(pbourke): revise in multi user context
-var (
-	httpRequestsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "habits_http_requests_total",
-			Help: "Total number of HTTP requests by endpoint and method",
-		},
-		[]string{"endpoint", "method"},
-	)
-
-	httpRequestDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "habits_http_request_duration_seconds",
-			Help:    "Duration of HTTP requests in seconds",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"endpoint", "method"},
-	)
-
-	activeHabits = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "habits_active_habits_total",
-			Help: "Total number of active habits",
-		},
-	)
-)
-
-type Server struct {
-	Store storage.Store
+type OIDCConfig struct {
+	oauth2     *oauth2.Config
+	oidcProv   *oidc.Provider
+	idVerifier *oidc.IDTokenVerifier
+	cookie     *securecookie.SecureCookie
+	state      *StateStore
 }
 
-func New(store storage.Store) *Server {
-	return &Server{Store: store}
+type Server struct {
+	Store    storage.Store
+	authConf *OIDCConfig
+}
+
+func New(store storage.Store, issuer, clientID, clientSecret, redirectURL string) (*Server, error) {
+	srv := &Server{
+		Store: store,
+	}
+
+	if clientID != "" && clientSecret != "" && issuer != "" {
+		prov, err := oidc.NewProvider(context.Background(), issuer)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
+		}
+
+		verifier := prov.Verifier(&oidc.Config{ClientID: clientID})
+		oauth2Cfg := &oauth2.Config{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			RedirectURL:  redirectURL,
+			Endpoint:     prov.Endpoint(),
+			Scopes:       []string{oidc.ScopeOpenID, "profile"}, // minimal scope; "email", "groups"
+		}
+
+		sc := securecookie.New([]byte("HMAC-KEY-32B-MIN"), []byte("ENC-KEY-32B-MIN"))
+		sc.MaxAge(86400)
+		state := NewStateStore(5 * time.Minute)
+
+		srv.authConf = &OIDCConfig{
+			oauth2:     oauth2Cfg,
+			oidcProv:   prov,
+			idVerifier: verifier,
+			cookie:     sc,
+			state:      state,
+		}
+	}
+
+	return srv, nil
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) error {
@@ -70,8 +87,20 @@ func (s *Server) Router() http.Handler {
 	r.Handle("/metrics", promhttp.Handler())
 	r.Get("/version", s.getVersionInfo)
 
+	if s.IsAuthEnabled() {
+		/*
+			r.Route("/auth", func(r chi.Router) {
+				r.Get("/login", s.login)
+				r.Get("/callback", s.callback)
+				r.Post("/logout", s.logout)
+			})
+		*/
+	}
+
 	r.Route("/habits", func(r chi.Router) {
-		r.Use(authMiddleware)
+		if s.IsAuthEnabled() {
+			//r.Use(s.authMiddleware)
+		}
 		r.Post("/", s.trackHabit)
 		r.Get("/", s.listHabits)
 		r.Get("/{habit_id}", s.getHabit)
@@ -84,7 +113,6 @@ func (s *Server) Router() http.Handler {
 
 func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 	habitID := chi.URLParam(r, "habit_id")
-
 	if userID == "" || habitID == "" {
 		http.Error(w, `{"error":"user id and habit id are required"}`, http.StatusBadRequest)
 		return
@@ -157,7 +185,6 @@ func (s *Server) listHabits(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"user id is required"}`, http.StatusBadRequest)
 		return
 	}
-
 	names, err := s.Store.ListHabitNames(userID)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
@@ -174,7 +201,6 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"user id is required"}`, http.StatusBadRequest)
 		return
 	}
-
 	var h habit.Habit
 	if err := json.NewDecoder(r.Body).Decode(&h); err != nil {
 		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
@@ -200,7 +226,6 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 	habitID := chi.URLParam(r, "habit_id")
-
 	if userID == "" || habitID == "" {
 		http.Error(w, `{"error":"user id and habit id are required"}`, http.StatusBadRequest)
 		return
@@ -228,7 +253,6 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
 	habitID := chi.URLParam(r, "habit_id")
-
 	if userID == "" || habitID == "" {
 		http.Error(w, `{"error":"user id and habit id are required"}`, http.StatusBadRequest)
 		return
@@ -244,6 +268,10 @@ func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
 	activeHabits.Set(float64(len(habits)))
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) IsAuthEnabled() bool {
+	return s.authConf != nil
 }
 
 func validateHabit(h habit.Habit) error {

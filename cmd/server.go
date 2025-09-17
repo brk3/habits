@@ -23,7 +23,16 @@ var serverCmd = &cobra.Command{
 		}
 		defer store.Close()
 
-		s := server.New(store)
+		// TODO(pbourke): add to config
+		issuer := ""       // "https://idm.example.com/oauth2/openid/idm-provided-id"
+		clientID := ""     // "idm-provided-id"
+		clientSecret := "" // "<secret token provided by oidc provider>"
+		redirectURL := "https://habits.example.com/auth/callback"
+
+		s, err := server.New(store, issuer, clientID, clientSecret, redirectURL)
+		if err != nil {
+			return err
+		}
 		log.Println("Listening on :8080")
 		return http.ListenAndServe(":8080", s.Router())
 	},

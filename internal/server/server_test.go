@@ -340,7 +340,7 @@ func TestDeleteHabit(t *testing.T) {
 }
 
 func newTestServer(st storage.Store) http.Handler {
-	s := New(st)
+	s, _ := New(st, "", "", "", "")
 	return s.Router()
 }
 
