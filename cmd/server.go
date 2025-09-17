@@ -23,9 +23,26 @@ var serverCmd = &cobra.Command{
 		}
 		defer store.Close()
 
-		s := server.New(store)
-		log.Println("Listening on :8080")
-		return http.ListenAndServe(":8080", s.Router())
+		// TODO: These options should be configurable somehow
+
+		// OIDC issuer url
+		issuer := "https://idm.example.com/oauth2/openid/idm-provided-id"
+
+		// OIDC provider gives you this information
+		clientID := "idm-provided-id"
+		clientSecret := "<secret token provided by oidc provided>"
+
+		// redirectURL in current form it would only support a single OIDC provider
+		// When making this configurable, that URL will change to `/auth/callback/{ID}`
+		// to support multiple providers (i.e. GitLab && GitHub && Google)
+		redirectURL := "https://habits.example.com/auth/callback"
+
+		s, err := server.New(store, issuer, clientID, clientSecret, redirectURL)
+		if err != nil {
+			return err
+		}
+		log.Println("Listening on 127.0.0.1:9999")
+		return http.ListenAndServe("127.0.0.1:9999", s.Router())
 	},
 }
 
