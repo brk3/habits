@@ -23,7 +23,7 @@ func list(cmd *cobra.Command) {
 
 	habits, err := apiclient.ListHabits(context.Background())
 	if err != nil {
-		cmd.Println("Error fetching habits:", err)
+		cmd.Printf("Error fetching habits: %v\n", err)
 		return
 	}
 	for _, h := range habits {

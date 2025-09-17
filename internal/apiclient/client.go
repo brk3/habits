@@ -1,9 +1,11 @@
 package apiclient
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/brk3/habits/internal/server"
@@ -57,4 +59,20 @@ func (c *APIClient) GetHabitSummary(ctx context.Context, name string) (*habit.Ha
 		return nil, err
 	}
 	return &out, nil
+}
+
+func (c *APIClient) PutHabit(ctx context.Context, h *habit.Habit) error {
+	habitJson, _ := json.Marshal(h)
+	req, _ := http.NewRequestWithContext(ctx, "POST", c.BaseURL+"/habits", nil)
+	req.Header.Add("Authorization", `Bearer `+c.AuthToken)
+	req.Header.Add("Content-Type", "application/json")
+	req.Body = io.NopCloser(bytes.NewReader(habitJson))
+
+	res, err := c.HTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	return nil
 }

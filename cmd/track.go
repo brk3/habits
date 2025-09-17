@@ -1,14 +1,11 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/brk3/habits/internal/apiclient"
 	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/pkg/habit"
 	"github.com/spf13/cobra"
@@ -48,24 +45,14 @@ func track(name string, note string, cmd *cobra.Command) {
 		Note:      note,
 		TimeStamp: time.Now().Unix(),
 	}
-	habitJson, _ := json.Marshal(h)
-
 	cfg := config.Load()
-	resp, err := http.Post(cfg.APIBaseURL+"/habits", "application/json",
-		bytes.NewReader(habitJson))
+	apiclient := apiclient.New(cfg.APIBaseURL, cfg.AuthToken)
+	err := apiclient.PutHabit(cmd.Context(), h)
 	if err != nil {
-		cmd.Println("Error saving habit:", err)
+		cmd.Printf("Error recording habit: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		cmd.Println("Error reading response:", err)
-		return
-	}
-
-	cmd.Println(string(body))
+	cmd.Printf("Recorded habit: %s - %s\n", name, note)
 }
 
 func init() {
