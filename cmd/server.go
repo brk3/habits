@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -14,7 +15,10 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start the HTTP server",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg := config.Load()
+		cfg, err := config.Load("config.yaml")
+		if err != nil {
+			return err
+		}
 
 		log.Println("Opening DB...")
 		store, err := bolt.Open(cfg.DBPath)
@@ -23,18 +27,13 @@ var serverCmd = &cobra.Command{
 		}
 		defer store.Close()
 
-		// TODO(pbourke): add to config
-		issuer := ""       // "https://idm.example.com/oauth2/openid/idm-provided-id"
-		clientID := ""     // "idm-provided-id"
-		clientSecret := "" // "<secret token provided by oidc provider>"
-		redirectURL := "https://habits.example.com/auth/callback"
-
-		s, err := server.New(store, issuer, clientID, clientSecret, redirectURL)
+		s, err := server.New(cfg, store)
 		if err != nil {
 			return err
 		}
-		log.Println("Listening on :8080")
-		return http.ListenAndServe(":8080", s.Router())
+		addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+		log.Println("Listening on", addr)
+		return http.ListenAndServe(addr, s.Router())
 	},
 }
 

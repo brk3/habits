@@ -1,8 +1,18 @@
 package server
 
 import (
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/oauth2"
 )
 
 type StateStore struct {
@@ -36,7 +46,6 @@ func NewStateStore(ttl time.Duration) *StateStore {
 	return s
 }
 
-/*
 // TODO: I reviewed the code, but it should be rewritten once this is working as
 // desired. Or at least refactored and commented.
 //
@@ -63,7 +72,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		// 1) Try cookie, then Bearer
 		var rawIDToken string
 		if c, err := r.Cookie("id_token"); err == nil {
-			if err := s.cookie.Decode("id_token", c.Value, &rawIDToken); err != nil {
+			if err := s.authConf.cookie.Decode("id_token", c.Value, &rawIDToken); err != nil {
 				// bad cookie value; wipe it!
 				http.SetCookie(w, &http.Cookie{Name: "id_token", Value: "", Path: "/", MaxAge: -1})
 				rawIDToken = ""
@@ -87,7 +96,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		}
 
 		// 3) Verify token; on failure, wipe cookie and redirect/401
-		idTok, err := s.idVerifier.Verify(r.Context(), rawIDToken)
+		idTok, err := s.authConf.idVerifier.Verify(r.Context(), rawIDToken)
 		if err != nil {
 			http.SetCookie(w, &http.Cookie{Name: "id_token", Value: "", Path: "/", MaxAge: -1})
 			if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
@@ -154,13 +163,13 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	/// ???
 
-	s.state.Put(st, authState{
+	s.authConf.state.Put(st, authState{
 		Verifier: verifier,
 		Return:   ret,
 		ExpireAt: time.Now().Add(5 * time.Minute),
 	})
 
-	authURL := s.oauth2.AuthCodeURL(
+	authURL := s.authConf.oauth2.AuthCodeURL(
 		st,
 		oauth2.SetAuthURLParam("code_challenge", challenge),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
@@ -180,13 +189,13 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	saved, ok := s.state.GetAndDelete(st)
+	saved, ok := s.authConf.state.GetAndDelete(st)
 	if !ok || saved.Verifier == "" {
 		http.Error(w, "invalid or expired state", http.StatusBadRequest)
 		return
 	}
 
-	tok, err := s.oauth2.Exchange(
+	tok, err := s.authConf.oauth2.Exchange(
 		r.Context(),
 		code,
 		oauth2.SetAuthURLParam("code_verifier", saved.Verifier),
@@ -200,12 +209,12 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no id_token", http.StatusBadGateway)
 		return
 	}
-	if _, err := s.idVerifier.Verify(r.Context(), rawIDToken); err != nil {
+	if _, err := s.authConf.idVerifier.Verify(r.Context(), rawIDToken); err != nil {
 		http.Error(w, "id_token invalid", http.StatusUnauthorized)
 		return
 	}
 
-	val, _ := s.cookie.Encode("id_token", rawIDToken)
+	val, _ := s.authConf.cookie.Encode("id_token", rawIDToken)
 	http.SetCookie(w, &http.Cookie{
 		Name:     "id_token",
 		Value:    val,
@@ -232,8 +241,6 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-
-
 func (s *StateStore) Put(key string, v authState) {
 	s.mu.Lock()
 	s.m[key] = v
@@ -253,7 +260,6 @@ func (s *StateStore) GetAndDelete(key string) (authState, bool) {
 	return v, ok
 }
 
-// helpers
 func genCodeVerifier(n int) (string, error) {
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
@@ -261,15 +267,18 @@ func genCodeVerifier(n int) (string, error) {
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
+
 func codeChallengeS256(verifier string) string {
 	h := sha256.Sum256([]byte(verifier))
 	return base64.RawURLEncoding.EncodeToString(h[:])
 }
+
 func randState() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }
+
 func param(r *http.Request, name string) string {
 	if v := r.URL.Query().Get(name); v != "" {
 		return v
@@ -282,4 +291,3 @@ func param(r *http.Request, name string) string {
 	}
 	return ""
 }
-*/

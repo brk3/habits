@@ -6,4 +6,4 @@ scrape_configs:
   - job_name: habits-server
     metrics_path: /metrics
     static_configs:
-      - targets: ["habits-server:8080"]
+      - targets: ["habits-server:3000"]

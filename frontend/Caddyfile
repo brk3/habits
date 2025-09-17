@@ -1,18 +1,18 @@
 :80 {
   @metrics path /metrics
   handle @metrics {
-    reverse_proxy http://habits-server:8080
+    reverse_proxy http://habits-server:3000
   }
 
   @health path /healthz /readyz /version
   handle @health {
-    reverse_proxy http://habits-server:8080
+    reverse_proxy http://habits-server:3000
   }
 
   @api path /api/*
   handle @api {
     uri strip_prefix /api
-    reverse_proxy http://habits-server:8080
+    reverse_proxy http://habits-server:3000
   }
 
   handle {

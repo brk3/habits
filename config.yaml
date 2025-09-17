@@ -1,0 +1,20 @@
+auth_enabled: false
+#auth_token: "XXX"
+#db_path: habits.db
+#api_base_url: https://habits.example.com/api
+
+#server:
+#  host: 0.0.0.0
+#  port: 3000
+#  tls:
+#    enabled: false
+#    cert_file: ""
+#    key_file: ""
+
+oidc_providers:
+ - name: kanidm
+   issuer_url: "https://idm.example.com"
+   client_id: "your-client-id"
+   client_secret: "your-client-secret"
+   redirect_url: "https://habits.example.com/auth/callback"
+   scopes: ["openid", "profile"]

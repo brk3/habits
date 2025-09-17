@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/storage"
 	"github.com/brk3/habits/pkg/habit"
 	"github.com/brk3/habits/pkg/versioninfo"
@@ -23,7 +24,13 @@ import (
 // TODO(pbourke): implement from token
 const userID = "XXX"
 
-type OIDCConfig struct {
+type Server struct {
+	store    storage.Store
+	authConf *AuthConfig
+	cfg      *config.Config
+}
+
+type AuthConfig struct {
 	oauth2     *oauth2.Config
 	oidcProv   *oidc.Provider
 	idVerifier *oidc.IDTokenVerifier
@@ -31,18 +38,20 @@ type OIDCConfig struct {
 	state      *StateStore
 }
 
-type Server struct {
-	Store    storage.Store
-	authConf *OIDCConfig
-}
-
-func New(store storage.Store, issuer, clientID, clientSecret, redirectURL string) (*Server, error) {
+func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	srv := &Server{
-		Store: store,
+		store: store,
+		cfg:   cfg,
 	}
 
-	if clientID != "" && clientSecret != "" && issuer != "" {
-		prov, err := oidc.NewProvider(context.Background(), issuer)
+	if cfg.AuthEnabled {
+		clientID := cfg.OIDCProviders[0].ClientID
+		clientSecret := cfg.OIDCProviders[0].ClientSecret
+		issuerURL := cfg.OIDCProviders[0].IssuerURL
+		redirectURL := cfg.OIDCProviders[0].RedirectURL
+		scopes := cfg.OIDCProviders[0].Scopes
+
+		prov, err := oidc.NewProvider(context.Background(), issuerURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
 		}
@@ -51,21 +60,19 @@ func New(store storage.Store, issuer, clientID, clientSecret, redirectURL string
 		oauth2Cfg := &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			RedirectURL:  redirectURL,
 			Endpoint:     prov.Endpoint(),
-			Scopes:       []string{oidc.ScopeOpenID, "profile"}, // minimal scope; "email", "groups"
+			RedirectURL:  redirectURL,
+			Scopes:       scopes,
 		}
 
 		sc := securecookie.New([]byte("HMAC-KEY-32B-MIN"), []byte("ENC-KEY-32B-MIN"))
 		sc.MaxAge(86400)
-		state := NewStateStore(5 * time.Minute)
-
-		srv.authConf = &OIDCConfig{
+		srv.authConf = &AuthConfig{
 			oauth2:     oauth2Cfg,
 			oidcProv:   prov,
 			idVerifier: verifier,
 			cookie:     sc,
-			state:      state,
+			state:      NewStateStore(5 * time.Minute),
 		}
 	}
 
@@ -87,19 +94,17 @@ func (s *Server) Router() http.Handler {
 	r.Handle("/metrics", promhttp.Handler())
 	r.Get("/version", s.getVersionInfo)
 
-	if s.IsAuthEnabled() {
-		/*
-			r.Route("/auth", func(r chi.Router) {
-				r.Get("/login", s.login)
-				r.Get("/callback", s.callback)
-				r.Post("/logout", s.logout)
-			})
-		*/
+	if s.cfg.AuthEnabled {
+		r.Route("/auth", func(r chi.Router) {
+			r.Get("/login", s.login)
+			r.Get("/callback", s.callback)
+			r.Post("/logout", s.logout)
+		})
 	}
 
 	r.Route("/habits", func(r chi.Router) {
-		if s.IsAuthEnabled() {
-			//r.Use(s.authMiddleware)
+		if s.cfg.AuthEnabled {
+			r.Use(s.authMiddleware)
 		}
 		r.Post("/", s.trackHabit)
 		r.Get("/", s.listHabits)
@@ -185,7 +190,7 @@ func (s *Server) listHabits(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"user id is required"}`, http.StatusBadRequest)
 		return
 	}
-	names, err := s.Store.ListHabitNames(userID)
+	names, err := s.store.ListHabitNames(userID)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return
@@ -210,12 +215,12 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
-	if err := s.Store.PutHabit(userID, h); err != nil {
+	if err := s.store.PutHabit(userID, h); err != nil {
 		http.Error(w, `{"error":"database write failed"}`, http.StatusInternalServerError)
 		return
 	}
 
-	habits, _ := s.Store.ListHabitNames(userID)
+	habits, _ := s.store.ListHabitNames(userID)
 	activeHabits.Set(float64(len(habits)))
 
 	if err := writeJSON(w, http.StatusCreated, h); err != nil {
@@ -231,7 +236,7 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entries, err := s.Store.GetHabit(userID, habitID)
+	entries, err := s.store.GetHabit(userID, habitID)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return
@@ -258,20 +263,16 @@ func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := s.Store.DeleteHabit(userID, habitID)
+	err := s.store.DeleteHabit(userID, habitID)
 	if err != nil {
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return
 	}
 
-	habits, _ := s.Store.ListHabitNames(userID)
+	habits, _ := s.store.ListHabitNames(userID)
 	activeHabits.Set(float64(len(habits)))
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (s *Server) IsAuthEnabled() bool {
-	return s.authConf != nil
 }
 
 func validateHabit(h habit.Habit) error {

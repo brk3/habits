@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/storage"
 	"github.com/brk3/habits/pkg/habit"
 	"github.com/brk3/habits/pkg/versioninfo"
@@ -340,7 +341,7 @@ func TestDeleteHabit(t *testing.T) {
 }
 
 func newTestServer(st storage.Store) http.Handler {
-	s, _ := New(st, "", "", "", "")
+	s, _ := New(&config.Config{}, st)
 	return s.Router()
 }
 

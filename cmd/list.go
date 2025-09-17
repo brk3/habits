@@ -18,7 +18,11 @@ var listCmd = &cobra.Command{
 }
 
 func list(cmd *cobra.Command) {
-	cfg := config.Load()
+	cfg, err := config.Load("config.yaml")
+	if err != nil {
+		cmd.Println("Error loading config file", err)
+		return
+	}
 	apiclient := apiclient.New(cfg.APIBaseURL, cfg.AuthToken)
 
 	habits, err := apiclient.ListHabits(context.Background())

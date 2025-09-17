@@ -24,7 +24,7 @@ Track a habit!
 habits track running '5km in park'
 ```
 
-Open localhost:8080/habits/{habit} to view stats for your habit.
+Open localhost:3000/habits/{habit} to view stats for your habit.
 
 ## Development
 ```bash
@@ -44,4 +44,4 @@ habits track guitar "practiced riffs"
 ```
 
 ## Configuring
-See [habitsrc](./habitsrc)
+See [config.yaml](./config.yaml)

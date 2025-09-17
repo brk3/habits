@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Server) computeStreaks(userID, habit string) (current, longest int, err error) {
-	entries, err := s.Store.GetHabit(userID, habit)
+	entries, err := s.store.GetHabit(userID, habit)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -69,7 +69,7 @@ func (s *Server) computeStreaks(userID, habit string) (current, longest int, err
 }
 
 func (s *Server) getFirstLogged(userID, habit string) (int64, error) {
-	entries, err := s.Store.GetHabit(userID, habit)
+	entries, err := s.store.GetHabit(userID, habit)
 	if err != nil {
 		return 0, err
 	}
@@ -87,7 +87,7 @@ func (s *Server) getFirstLogged(userID, habit string) (int64, error) {
 }
 
 func (s *Server) computeTotalDaysDone(userID, habit string) (int, error) {
-	entries, err := s.Store.GetHabit(userID, habit)
+	entries, err := s.store.GetHabit(userID, habit)
 	if err != nil {
 		return 0, err
 	}
@@ -104,7 +104,7 @@ func (s *Server) computeTotalDaysDone(userID, habit string) (int, error) {
 }
 
 func (s *Server) computeDaysThisMonth(userID, habit string) (int, error) {
-	entries, err := s.Store.GetHabit(userID, habit)
+	entries, err := s.store.GetHabit(userID, habit)
 	if err != nil {
 		return 0, err
 	}
@@ -125,7 +125,7 @@ func (s *Server) computeDaysThisMonth(userID, habit string) (int, error) {
 }
 
 func (s *Server) computeBestMonth(userID, habit string) (int, error) {
-	entries, err := s.Store.GetHabit(userID, habit)
+	entries, err := s.store.GetHabit(userID, habit)
 	if err != nil {
 		return 0, err
 	}

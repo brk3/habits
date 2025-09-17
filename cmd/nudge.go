@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/nudge"
 	"github.com/brk3/habits/internal/nudge/resend"
 
@@ -12,11 +13,13 @@ import (
 )
 
 var (
+	cfg            *config.Config
 	notifyEmail    string
 	resendApiKey   string
 	nudgeThreshold int
 )
 
+// TODO: move options to config.yaml
 var nudgeCmd = &cobra.Command{
 	Use:   "nudge",
 	Short: "Send a reminder for habit streaks expiring within a certain window",
@@ -38,6 +41,11 @@ var nudgeCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("HABITS_NUDGE_THRESHOLD must be a valid integer: %v", err)
 		}
+
+		cfg, err = config.Load("config.yaml")
+		if err != nil {
+			return fmt.Errorf("error loading config file: %v", err)
+		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -45,7 +53,7 @@ var nudgeCmd = &cobra.Command{
 			ApiKey: resendApiKey,
 			Email:  notifyEmail,
 		}
-		nudge.Nudge(&n, nudgeThreshold)
+		nudge.Nudge(cfg, &n, nudgeThreshold)
 	},
 }
 
