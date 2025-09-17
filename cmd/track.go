@@ -45,9 +45,13 @@ func track(name string, note string, cmd *cobra.Command) {
 		Note:      note,
 		TimeStamp: time.Now().Unix(),
 	}
-	cfg := config.Load()
+	cfg, err := config.Load("config.yaml")
+	if err != nil {
+		cmd.Println("Error loading config file", err)
+		return
+	}
 	apiclient := apiclient.New(cfg.APIBaseURL, cfg.AuthToken)
-	err := apiclient.PutHabit(cmd.Context(), h)
+	err = apiclient.PutHabit(cmd.Context(), h)
 	if err != nil {
 		cmd.Printf("Error recording habit: %v\n", err)
 		return

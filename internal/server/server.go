@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/storage"
 	"github.com/brk3/habits/pkg/habit"
 	"github.com/brk3/habits/pkg/versioninfo"
@@ -34,15 +35,22 @@ type OIDCConfig struct {
 type Server struct {
 	Store    storage.Store
 	authConf *OIDCConfig
+	cfg      *config.Config
 }
 
-func New(store storage.Store, issuer, clientID, clientSecret, redirectURL string) (*Server, error) {
+func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	srv := &Server{
 		Store: store,
 	}
 
-	if clientID != "" && clientSecret != "" && issuer != "" {
-		prov, err := oidc.NewProvider(context.Background(), issuer)
+	if len(cfg.OIDCProviders) > 0 {
+		clientID := cfg.OIDCProviders[0].ClientID
+		clientSecret := cfg.OIDCProviders[0].ClientSecret
+		issuerURL := cfg.OIDCProviders[0].IssuerURL
+		redirectURL := cfg.OIDCProviders[0].RedirectURL
+		scopes := cfg.OIDCProviders[0].Scopes
+
+		prov, err := oidc.NewProvider(context.Background(), issuerURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
 		}
@@ -51,9 +59,9 @@ func New(store storage.Store, issuer, clientID, clientSecret, redirectURL string
 		oauth2Cfg := &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			RedirectURL:  redirectURL,
 			Endpoint:     prov.Endpoint(),
-			Scopes:       []string{oidc.ScopeOpenID, "profile"}, // minimal scope; "email", "groups"
+			RedirectURL:  redirectURL,
+			Scopes:       scopes,
 		}
 
 		sc := securecookie.New([]byte("HMAC-KEY-32B-MIN"), []byte("ENC-KEY-32B-MIN"))
