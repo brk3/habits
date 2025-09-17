@@ -14,7 +14,10 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start the HTTP server",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg := config.Load()
+		cfg, err := config.Load("config.yaml")
+		if err != nil {
+			return err
+		}
 
 		log.Println("Opening DB...")
 		store, err := bolt.Open(cfg.DBPath)

@@ -10,8 +10,7 @@ import (
 	"github.com/brk3/habits/internal/config"
 )
 
-func Nudge(n Notifier, nudgeThreshold int) {
-	cfg := config.Load()
+func Nudge(cfg *config.Config, n Notifier, nudgeThreshold int) {
 	apiclient := apiclient.New(cfg.APIBaseURL)
 	expiring, err := GetHabitsExpiringIn(context.Background(), apiclient,
 		time.Now().UTC(), time.Duration(nudgeThreshold)*time.Hour)

@@ -50,7 +50,11 @@ func track(name string, note string, cmd *cobra.Command) {
 	}
 	habitJson, _ := json.Marshal(h)
 
-	cfg := config.Load()
+	cfg, err := config.Load("config.yaml")
+	if err != nil {
+		cmd.Println("Error loading config file", err)
+		return
+	}
 	resp, err := http.Post(cfg.APIBaseURL+"/habits", "application/json",
 		bytes.NewReader(habitJson))
 	if err != nil {
