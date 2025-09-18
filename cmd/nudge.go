@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 
 	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/nudge"
@@ -19,41 +17,29 @@ var (
 	nudgeThreshold int
 )
 
-// TODO: move options to config.yaml
 var nudgeCmd = &cobra.Command{
 	Use:   "nudge",
 	Short: "Send a reminder for habit streaks expiring within a certain window",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if resendApiKey = os.Getenv("HABITS_RESEND_API_KEY"); resendApiKey == "" {
-			return fmt.Errorf("HABITS_RESEND_API_KEY environment variable is not set")
-		}
-
-		if notifyEmail = os.Getenv("HABITS_NOTIFY_EMAIL"); notifyEmail == "" {
-			return fmt.Errorf("HABITS_NOTIFY_EMAIL environment variable is not set")
-		}
-
-		nudgeThresholdStr := os.Getenv("HABITS_NUDGE_THRESHOLD")
-		if nudgeThresholdStr == "" {
-			return fmt.Errorf("HABITS_NUDGE_THRESHOLD environment variable is not set")
-		}
 		var err error
-		nudgeThreshold, err = strconv.Atoi(nudgeThresholdStr)
-		if err != nil {
-			return fmt.Errorf("HABITS_NUDGE_THRESHOLD must be a valid integer: %v", err)
-		}
-
 		cfg, err = config.Load()
 		if err != nil {
 			return fmt.Errorf("error loading config file: %v", err)
+		}
+		if cfg.Nudge.ResendAPIKey == "" {
+			return fmt.Errorf("nudge.resend_api_key is required")
+		}
+		if cfg.Nudge.NotifyEmail == "" {
+			return fmt.Errorf("nudge.notify_email is required")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		n := resend.ResendNotifier{
-			ApiKey: resendApiKey,
-			Email:  notifyEmail,
+			ApiKey: cfg.Nudge.ResendAPIKey,
+			Email:  cfg.Nudge.NotifyEmail,
 		}
-		nudge.Nudge(cfg, &n, nudgeThreshold)
+		nudge.Nudge(cfg, &n, cfg.Nudge.ThresholdHours)
 	},
 }
 

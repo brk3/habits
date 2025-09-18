@@ -14,7 +14,8 @@ type Config struct {
 	AuthToken   string `yaml:"auth_token"`
 	DBPath      string `yaml:"db_path"`
 	APIBaseURL  string `yaml:"api_base_url"`
-	Server      struct {
+
+	Server struct {
 		Host string `yaml:"host"`
 		Port int    `yaml:"port"`
 		TLS  struct {
@@ -23,6 +24,7 @@ type Config struct {
 			KeyFile  string `yaml:"key_file"`
 		} `yaml:"tls"`
 	} `yaml:"server"`
+
 	OIDCProviders []struct {
 		Name              string   `yaml:"name"`
 		IssuerURL         string   `yaml:"issuer_url"`
@@ -36,6 +38,12 @@ type Config struct {
 		redirectURL       *url.URL `yaml:"-"`
 		logoutRedirectURL *url.URL `yaml:"-"`
 	} `yaml:"oidc_providers"`
+
+	Nudge struct {
+		NotifyEmail    string `yaml:"notify_email"`
+		ResendAPIKey   string `yaml:"resend_api_key"`
+		ThresholdHours int    `yaml:"threshold_hours"`
+	} `yaml:"nudge"`
 }
 
 func Load() (*Config, error) {
@@ -82,12 +90,11 @@ func (c *Config) applyDefaults() {
 	if c.AuthToken == "" {
 		c.AuthToken = "XXX"
 	}
-	if !c.Server.TLS.Enabled {
-		c.Server.TLS.Enabled = false
+
+	if c.Nudge.ThresholdHours == 0 {
+		c.Nudge.ThresholdHours = 3
 	}
-	if !c.AuthEnabled {
-		c.AuthEnabled = false
-	}
+
 	for i := range c.OIDCProviders {
 		provider := &c.OIDCProviders[i]
 		if provider.Scopes == nil {
