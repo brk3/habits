@@ -1,13 +1,13 @@
 # TODO
-- [ ] Simple username based segregation
-- [ ] Improve summary page
+- [ ] Basic auth
 - [ ] Add TLS for frontend
 - [ ] Better logging
+- [ ] Improve summary page
 - [ ] Add frontend package to release build
 - [ ] Motivation messages in API
 - [ ] Expand on metrics, add prom queries
 - [ ] Nicer output from cli
-- [ ] Basic auth
+- [X] Simple username based segregation
 - [X] Fix release notes in release build
 - [X] Cut a minor release on next main feature addition
 - [X] Reminders
