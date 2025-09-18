@@ -48,7 +48,6 @@ func Load(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// TODO: generate default config file as part of build
 func (c *Config) applyDefaults() {
 	if c.DBPath == "" {
 		c.DBPath = "habits.db"
@@ -60,7 +59,7 @@ func (c *Config) applyDefaults() {
 		c.Server.Port = 3000
 	}
 	if c.APIBaseURL == "" {
-		c.APIBaseURL = "https://habits.example.com/api"
+		c.APIBaseURL = "http://localhost:3000"
 	}
 	if c.AuthToken == "" {
 		c.AuthToken = "XXX"
