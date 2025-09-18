@@ -18,7 +18,7 @@ var listCmd = &cobra.Command{
 }
 
 func list(cmd *cobra.Command) {
-	cfg, err := config.Load("config.yaml")
+	cfg, err := config.Load()
 	if err != nil {
 		cmd.Println("Error loading config file", err)
 		return

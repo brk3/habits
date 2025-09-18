@@ -42,7 +42,7 @@ var nudgeCmd = &cobra.Command{
 			return fmt.Errorf("HABITS_NUDGE_THRESHOLD must be a valid integer: %v", err)
 		}
 
-		cfg, err = config.Load("config.yaml")
+		cfg, err = config.Load()
 		if err != nil {
 			return fmt.Errorf("error loading config file: %v", err)
 		}

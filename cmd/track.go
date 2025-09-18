@@ -45,7 +45,7 @@ func track(name string, note string, cmd *cobra.Command) {
 		Note:      note,
 		TimeStamp: time.Now().Unix(),
 	}
-	cfg, err := config.Load("config.yaml")
+	cfg, err := config.Load()
 	if err != nil {
 		cmd.Println("Error loading config file", err)
 		return

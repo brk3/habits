@@ -20,7 +20,7 @@ and server if available.`,
 }
 
 func version(cmd *cobra.Command) {
-	cfg, err := config.Load("config.yaml")
+	cfg, err := config.Load()
 	if err != nil {
 		cmd.Println("Error loading config file", err)
 		return

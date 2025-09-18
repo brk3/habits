@@ -7,6 +7,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var ConfigLocation string
+
 type Config struct {
 	AuthEnabled bool   `yaml:"auth_enabled"`
 	AuthToken   string `yaml:"auth_token"`
@@ -32,7 +34,12 @@ type Config struct {
 	} `yaml:"oidc_providers"`
 }
 
-func Load(path string) (*Config, error) {
+func Load() (*Config, error) {
+	path := os.Getenv("HABITS_CONFIG")
+	if path == "" {
+		path = "config.yaml"
+	}
+
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("error reading config: %w", err)
