@@ -7,8 +7,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var ConfigLocation string
-
 type Config struct {
 	AuthEnabled bool   `yaml:"auth_enabled"`
 	AuthToken   string `yaml:"auth_token"`

@@ -5,12 +5,13 @@ services:
     restart: unless-stopped
     command: server
     environment:
-      - HABITS_DB_PATH=/data/habits.db
+      - HABITS_CONFIG=/config.yaml
     volumes:
       # Note: due to rootless container, run:
       # chown -R 65532:65532 ~/habits_db/
       # chmod 775 ~/habits_db/
       - ~/habits_db:/data
+      - ./config.yaml:/config.yaml:ro
 
   habits-frontend:
     image: ghcr.io/brk3/habits-frontend:latest
