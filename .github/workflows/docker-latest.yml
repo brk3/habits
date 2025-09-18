@@ -28,6 +28,7 @@ jobs:
               - '**/*.go'
               - 'go.mod'
               - 'go.sum'
+              - Dockerfile
 
   docker:
     needs: check-go-changes
