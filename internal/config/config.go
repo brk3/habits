@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -106,6 +107,27 @@ func (c *Config) applyDefaults() {
 func (c *Config) finalize() error {
 	var err error
 
+	if c.DBPath != "" {
+		if c.DBPath, err = resolvePath(c.DBPath); err != nil {
+			return fmt.Errorf("File does not exist > db_path: %w", err)
+		}
+	}
+
+	if c.Server.TLS.CertFile != "" {
+		if c.Server.TLS.CertFile, err = resolvePath(c.Server.TLS.CertFile); err != nil {
+			return fmt.Errorf("File does not exist > server.tls.cert_file: %w", err)
+		}
+	}
+	if c.Server.TLS.KeyFile != "" {
+		if c.Server.TLS.KeyFile, err = resolvePath(c.Server.TLS.KeyFile); err != nil {
+			return fmt.Errorf("File does not exist > server.tls.key_file: %w", err)
+		}
+	}
+
+	if len(c.OIDCProviders) > 0 && !c.AuthEnabled {
+		c.AuthEnabled = true
+	}
+
 	for i := range c.OIDCProviders {
 		provider := &c.OIDCProviders[i]
 		name := provider.Name
@@ -134,8 +156,54 @@ func (c *Config) finalize() error {
 }
 
 func (c *Config) validate() error {
-	seen := make(map[string]struct{}, len(c.OIDCProviders))
+	tlscfg := c.Server.TLS
+	if tlscfg.Enabled {
+		if tlscfg.CertFile == "" || tlscfg.KeyFile == "" {
+			return errors.New("server.tls enabled but cert_file or key_file missing")
+		}
 
+		// Check public certificate file:
+		// 1. stat: does it exist?
+		// 2. open: can we open the file?
+		cert := tlscfg.CertFile
+		_, err := fileStat(cert)
+		if err != nil {
+			return fmt.Errorf("server.tls.cert_file: %w", err)
+		}
+		if err := canOpenFile(cert); err != nil {
+			return fmt.Errorf("server.tls.cert_file not readable: %w", err)
+		}
+
+		// Check private key file:
+		// 1. stat: does it exist?
+		// 2. mode: is the private file to permissive?
+		// 3. open: can we open the file?
+		key := tlscfg.KeyFile
+		fiKey, err := fileStat(key)
+		if err != nil {
+			return fmt.Errorf("server.tls.key_file: %w", err)
+		}
+
+		mode := fiKey.Mode().Perm()
+		if mode&0o077 != 0 {
+			return fmt.Errorf("server.tls.key_file: %s permissions too permissive (%#o); expected 0600", key, mode)
+		}
+
+		if err := canOpenFile(key); err != nil {
+			return fmt.Errorf("server.tls.key_file not readable: %w", err)
+		}
+
+	}
+
+	if len(c.OIDCProviders) == 0 && c.AuthEnabled {
+		return errors.New("Authentication was enabled, but no OIDC Providers were configured")
+	}
+
+	if len(c.OIDCProviders) > 0 && !c.AuthEnabled {
+		return errors.New("OIDC Providers have been configured, but auth is disabled")
+	}
+
+	seen := make(map[string]struct{}, len(c.OIDCProviders))
 	for i := range c.OIDCProviders {
 		provider := &c.OIDCProviders[i]
 		name := provider.Name
@@ -165,12 +233,46 @@ func (c *Config) validate() error {
 			return fmt.Errorf("oidc_providers[%d] (%q): client_secret is required", i, name)
 		}
 	}
+	return nil
+}
 
-	if c.Server.TLS.Enabled {
-		if c.Server.TLS.CertFile == "" || c.Server.TLS.KeyFile == "" {
-			// TODO: Also check permissions to access these files?
-			return errors.New("server.tls enabled but cert_file or key_file missing")
-		}
+// you give path, i give _real_ path
+func resolvePath(p string) (string, error) {
+	if p == "" {
+		return "", errors.New("empty path")
 	}
+
+	abs, err := filepath.Abs(filepath.Clean(p))
+	if err != nil {
+		return "", fmt.Errorf("abs path: %w", err)
+	}
+
+	resolved, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		// If the file doesn't exist yet, EvalSymlinks will fail; return absolute path
+		return abs, nil
+	}
+	return resolved, nil
+}
+
+// calls OS stat() on the file and returns info
+func fileStat(p string) (os.FileInfo, error) {
+	fi, err := os.Stat(p)
+	if err != nil {
+		return nil, err
+	}
+	if !fi.Mode().IsRegular() {
+		return nil, fmt.Errorf("%s is not a regular file", p)
+	}
+	return fi, nil
+}
+
+// opens file and closes it; does not read from file
+func canOpenFile(p string) error {
+	f, err := os.Open(p)
+	if err != nil {
+		return err
+	}
+	_ = f.Close()
 	return nil
 }
