@@ -41,7 +41,7 @@ lint:
 	staticcheck ./...
 
 server:
-	go run main.go server
+	env -i PATH="$$PATH" HOME="$$HOME" go run main.go server
 
 frontend:
 	cd frontend && npm run dev
