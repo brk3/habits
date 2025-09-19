@@ -33,7 +33,11 @@ var serverCmd = &cobra.Command{
 		}
 		addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 		log.Println("Listening on", addr)
-		return http.ListenAndServe(addr, s.Router())
+		if cfg.Server.TLS.Enabled {
+			return http.ListenAndServeTLS(addr, cfg.Server.TLS.CertFile, cfg.Server.TLS.KeyFile, s.Router())
+		} else {
+			return http.ListenAndServe(addr, s.Router())
+		}
 	},
 }
 
