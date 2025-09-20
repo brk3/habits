@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -69,7 +70,7 @@ button {
 `)
 
 	for id := range s.authConf {
-		fmt.Fprintf(w, `<form action="/auth/%s/login" method="GET">
+		fmt.Fprintf(w, `<form action="/auth/login/%s" method="GET">
             <button type="submit">%s</button>
         </form>
 `, id, s.authConf[id].name)
@@ -117,14 +118,30 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		// I dont think this is needed anymore since I changed the routing in the chi server part above.
 		p := r.URL.Path
 		if strings.HasPrefix(p, "/auth/") || p == "/version" || strings.HasPrefix(p, "/metrics") {
+			slog.Error("We shouldn't have run")
 			next.ServeHTTP(w, r)
 			return
 		}
 		/// ???
 
-		id := chi.URLParam(r, "id")
-		name := "oidc." + id + ".token"
-		redirect_path := fmt.Sprintf("/auth/%s/login?return=%s", id, url.QueryEscape(r.URL.RequestURI()))
+		// This block will go away when we have a session id
+		// Current limitation is if one cookie is found, we don't check others. NBD, just /auth/logout
+		id := "bad_id"
+		name := "bad_name"
+		for i := range s.authConf {
+			n := fmt.Sprintf("oidc.%s.token", i)
+			_, err := r.Cookie(n)
+			if err == http.ErrNoCookie {
+				continue
+			}
+			if err != nil {
+				slog.Debug("Unknown error checking oidc cookie", "err", err)
+				continue
+			}
+			id = i
+			name = n
+			break
+		}
 
 		// 1) Try cookie, then Bearer
 		var rawIDToken string
@@ -144,7 +161,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		// 2) No token → redirect only for GET+HTML, else 401
 		if rawIDToken == "" {
 			if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
-				http.Redirect(w, r, redirect_path, http.StatusFound)
+				http.Redirect(w, r, "/auth/login", http.StatusFound)
 			} else {
 				w.Header().Set("WWW-Authenticate", `Bearer realm="habits"`)
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -157,7 +174,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1})
 			if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
-				http.Redirect(w, r, redirect_path, http.StatusFound)
+				http.Redirect(w, r, "/auth/login", http.StatusFound)
 			} else {
 				w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -290,17 +307,19 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	name := "oidc." + id + ".token"
-	http.SetCookie(w, &http.Cookie{
-		Name:     name,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	// This matches how a single session id logout would work on logout.
+	// Wipe all cookies on logout
+	for id := range s.authConf {
+		http.SetCookie(w, &http.Cookie{
+			Name:     fmt.Sprintf("oidc.%s.token", id),
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
+		})
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
