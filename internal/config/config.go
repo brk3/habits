@@ -110,18 +110,18 @@ func (c *Config) finalize() error {
 
 	if c.DBPath != "" {
 		if c.DBPath, err = resolvePath(c.DBPath); err != nil {
-			return fmt.Errorf("File does not exist > db_path: %w", err)
+			return fmt.Errorf("file does not exist > db_path: %w", err)
 		}
 	}
 
 	if c.Server.TLS.CertFile != "" {
 		if c.Server.TLS.CertFile, err = resolvePath(c.Server.TLS.CertFile); err != nil {
-			return fmt.Errorf("File does not exist > server.tls.cert_file: %w", err)
+			return fmt.Errorf("file does not exist > server.tls.cert_file: %w", err)
 		}
 	}
 	if c.Server.TLS.KeyFile != "" {
 		if c.Server.TLS.KeyFile, err = resolvePath(c.Server.TLS.KeyFile); err != nil {
-			return fmt.Errorf("File does not exist > server.tls.key_file: %w", err)
+			return fmt.Errorf("file does not exist > server.tls.key_file: %w", err)
 		}
 	}
 
@@ -197,7 +197,7 @@ func (c *Config) validate() error {
 	}
 
 	if len(c.OIDCProviders) == 0 && c.AuthEnabled {
-		return errors.New("Authentication was enabled, but no OIDC Providers were configured")
+		return errors.New("authentication was enabled, but no OIDC Providers were configured")
 	}
 
 	if len(c.OIDCProviders) > 0 && !c.AuthEnabled {
