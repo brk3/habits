@@ -27,11 +27,6 @@
     }
 }
 
-habits-api.aiectomy.xyz {
-    import inttls
-    import habits-backend
-}
-
 habits.aiectomy.xyz {
     import inttls
     import habits-backend
