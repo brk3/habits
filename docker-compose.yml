@@ -1,4 +1,14 @@
 services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300 # 5 mins
+      - WATCHTOWER_CLEANUP=true
+
   habits-server:
     image: ghcr.io/brk3/habits:latest
     container_name: habits-server
@@ -19,18 +29,21 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+    volumes:
+      - ./frontend/Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
       - habits-server
 
-  watchtower:
-    image: containrrr/watchtower:latest
-    container_name: watchtower
-    restart: unless-stopped
+  acme-sh:
+    image: neilpang/acme.sh
+    container_name: acme.sh
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - WATCHTOWER_POLL_INTERVAL=300 # 5 mins
-      - WATCHTOWER_CLEANUP=true
+      - ./certs:/acme.sh
+    network_mode: host
+    command: daemon
+    stdin_open: true
+    tty: true
+    restart: no
 
   prometheus:
     image: prom/prometheus:latest
