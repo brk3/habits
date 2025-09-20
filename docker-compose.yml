@@ -28,9 +28,10 @@ services:
     container_name: habits-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "443:443"
     volumes:
       - ./frontend/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
     depends_on:
       - habits-server
 

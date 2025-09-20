@@ -13,19 +13,6 @@ Habits is built on the idea that small, consistent actions yield the best result
 curl -fsSL https://raw.githubusercontent.com/brk3/habits/main/install.sh | bash
 ```
 
-## Quickstart
-Start a server and habits API:
-```
-docker compose up -d
-```
-
-Track a habit!
-```
-habits track running '5km in park'
-```
-
-Open localhost:3000/habits/{habit} to view stats for your habit.
-
 ## Development
 ```bash
 # Build the project
@@ -45,3 +32,18 @@ habits track guitar "practiced riffs"
 
 ## Configuring
 See [config.yaml](./config.yaml)
+
+## Hosting
+A `docker-compose.yml` is included for a full working setup. It's fronted by a Caddy reverse proxy
+which also hosts the `habits-frontend`.
+
+This is secured by a wildcard letsencrypt cert, based on this [guide](https://blog.mni.li/posts/internal-tls-with-caddy).
+
+```bash
+# Fetch your wildcard cert
+docker exec acme.sh --register-account -m my@example.com --server letsencrypt --set-default-ca
+docker exec acme.sh --issue -k 4096 -d aiectomy.xyz -d '*.aiectomy.xyz' --dns dns_acmedns
+
+# Bring up the habits stack
+docker compose up -d
+```
