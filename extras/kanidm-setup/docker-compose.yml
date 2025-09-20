@@ -1,0 +1,13 @@
+services:
+  kanidm:
+    image: kanidm/server:latest
+    container_name: kanidm-server
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./data:/data
+      - ./server.toml:/server.toml
+    environment:
+      - KANIDM_CONFIG=/data/server.toml
+    command: ["/sbin/kanidmd", "server", "-c", "/server.toml"]

@@ -1,0 +1,23 @@
+# The server configuration file version.
+version = "2"
+
+# The webserver bind address. Using IPv6 format that accepts both IPv4 and IPv6
+bindaddress = "[::]:8443"
+
+# The path to the kanidm database.
+db_path = "/data/kanidm.db"
+
+# TLS chain and key in pem format
+tls_chain = "/data/chain.pem"
+tls_key = "/data/key.pem"
+
+# The DNS domain name of the server - change this to your actual domain
+domain = "idm.aiectomy.xyz"
+
+# The origin for webauthn - must match your domain with port
+origin = "https://idm.aiectomy.xyz"
+
+# Online backup configuration
+[online_backup]
+path = "/data/kanidm/backups/"
+schedule = "00 22 * * *"

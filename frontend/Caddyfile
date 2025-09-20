@@ -37,3 +37,13 @@ habits.aiectomy.xyz {
     import habits-backend
     import habits-frontend
 }
+
+idm.aiectomy.xyz {
+    import inttls
+    reverse_proxy idm.aiectomy.xyz:8443 {
+        transport http {
+                tls
+                tls_insecure_skip_verify
+        }
+    }
+}
