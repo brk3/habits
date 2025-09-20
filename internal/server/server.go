@@ -32,6 +32,7 @@ type Server struct {
 }
 
 type AuthConfig struct {
+	name       string
 	oauth2     *oauth2.Config
 	oidcProv   *oidc.Provider
 	idVerifier *oidc.IDTokenVerifier
@@ -58,6 +59,7 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 		for i := range cfg.OIDCProviders {
 			cfgprov := cfg.OIDCProviders[i]
 			id := cfgprov.Id
+			name := cfgprov.Name
 			clientID := cfgprov.ClientID
 			clientSecret := cfgprov.ClientSecret
 			issuerURL := cfgprov.IssuerURL
@@ -89,6 +91,7 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 			sc := securecookie.New(hashKey, blockKey)
 			sc.MaxAge(86400)
 			srv.authConf[id] = &AuthConfig{
+				name:       name,
 				oauth2:     oauth2Cfg,
 				oidcProv:   prov,
 				idVerifier: verifier,
@@ -118,6 +121,7 @@ func (s *Server) Router() http.Handler {
 
 	if s.cfg.AuthEnabled {
 		r.Route("/auth", func(r chi.Router) {
+			r.Get("/login", s.simpleLogin)
 			r.Get("/{id}/login", s.login)
 			r.Get("/{id}/callback", s.callback)
 			r.Post("/{id}/logout", s.logout)

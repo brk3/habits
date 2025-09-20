@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -45,6 +46,38 @@ func NewStateStore(ttl time.Duration) *StateStore {
 		}
 	}()
 	return s
+}
+
+func (s *Server) simpleLogin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	fmt.Fprint(w, `<!DOCTYPE html>
+<html>
+<head>
+<title>OIDC Providers</title>
+<style>
+button {
+    display: block;
+    margin: 10px 0;
+    padding: 10px 20px;
+    font-size: 16px;
+}
+</style>
+</head>
+<body>
+<h1>Available OIDC Providers</h1>
+`)
+
+	for id := range s.authConf {
+		fmt.Fprintf(w, `<form action="/auth/%s/login" method="GET">
+            <button type="submit">%s</button>
+        </form>
+`, id, s.authConf[id].name)
+	}
+
+	fmt.Fprint(w, `
+</body>
+</html>`)
 }
 
 func (s *Server) getAPIToken(w http.ResponseWriter, r *http.Request) {
@@ -91,6 +124,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 
 		id := chi.URLParam(r, "id")
 		name := "oidc." + id + ".token"
+		redirect_path := fmt.Sprintf("/auth/%s/login?return=%s", id, url.QueryEscape(r.URL.RequestURI()))
 
 		// 1) Try cookie, then Bearer
 		var rawIDToken string
@@ -110,7 +144,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		// 2) No token → redirect only for GET+HTML, else 401
 		if rawIDToken == "" {
 			if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
-				http.Redirect(w, r, "/auth/"+id+"/login?return="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
+				http.Redirect(w, r, redirect_path, http.StatusFound)
 			} else {
 				w.Header().Set("WWW-Authenticate", `Bearer realm="habits"`)
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -123,7 +157,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1})
 			if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
-				http.Redirect(w, r, "/auth/"+id+"/login?return="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
+				http.Redirect(w, r, redirect_path, http.StatusFound)
 			} else {
 				w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
