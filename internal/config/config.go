@@ -201,7 +201,7 @@ func (c *Config) validate() error {
 	}
 
 	if len(c.OIDCProviders) > 0 && !c.AuthEnabled {
-		return errors.New("OIDC Providers have been configured, but auth is disabled")
+		fmt.Println("OIDC Providers have been configured, but auth is disabled")
 	}
 
 	seen := make(map[string]struct{}, len(c.OIDCProviders))
