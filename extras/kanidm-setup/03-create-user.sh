@@ -7,9 +7,9 @@ set -eEuxo pipefail
 # uri = "https://idm.aiectomy.xyz"
 
 kanidm=(
-    docker run --rm -it 
+    docker run --rm -it
         -v ./kanidm:/root/.config/kanidm:ro
-	-v ./cache:/root/.cache
+	      -v ./cache:/root/.cache
         docker.io/kanidm/tools:1.7.3
         /sbin/kanidm
 )
@@ -45,7 +45,7 @@ ${kanidm[@]} system oauth2 update-scope-map habits habits_users openid profile
 
 # Add redirect URL for OAuth callback
 # Update this URL to match your habits app callback
-${kanidm[@]} system oauth2 add-redirect-url habits https://habits.aiectomy.xyz/auth/callback
+${kanidm[@]} system oauth2 add-redirect-url habits https://habits.aiectomy.xyz/auth/01K5JMC5CM2FQGQ6AYVJEYKMVJ/callback
 
 # Use short usernames for cleaner display
 ${kanidm[@]} system oauth2 prefer-short-username habits
