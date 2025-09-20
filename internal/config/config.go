@@ -27,6 +27,7 @@ type Config struct {
 	} `yaml:"server"`
 
 	OIDCProviders []struct {
+		Id                string   `yaml:"id"`
 		Name              string   `yaml:"name"`
 		IssuerURL         string   `yaml:"issuer_url"`
 		ClientID          string   `yaml:"client_id"`
@@ -135,6 +136,10 @@ func (c *Config) finalize() error {
 			return fmt.Errorf("oidc_providers[%d]: name is required", i)
 		}
 
+		if provider.Id == "" {
+			return fmt.Errorf("oidc_providers[%d] (%s): id is required", i, name)
+		}
+
 		provider.issuerURL, err = url.Parse(provider.IssuerURL)
 		if err != nil {
 			return fmt.Errorf("oidc_providers[%d] (%s): issuer_url is not a valid URL", i, name)
@@ -216,6 +221,10 @@ func (c *Config) validate() error {
 			return fmt.Errorf("duplicate provider name %q in oidc_providers", name)
 		}
 		seen[name] = struct{}{}
+
+		if provider.Id == "" {
+			return fmt.Errorf("oidc_providers[%d] (%s): id is required", i, name)
+		}
 
 		if provider.IssuerURL == "" {
 			return fmt.Errorf("oidc_providers[%d] (%q): issuer_url is required", i, name)

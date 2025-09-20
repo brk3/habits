@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -26,7 +27,7 @@ const userID = "XXX"
 
 type Server struct {
 	store    storage.Store
-	authConf *AuthConfig
+	authConf map[string]*AuthConfig
 	cfg      *config.Config
 }
 
@@ -38,6 +39,14 @@ type AuthConfig struct {
 	state      *StateStore
 }
 
+func generateRandomBytes(n int) ([]byte, error) {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return nil, fmt.Errorf("rand.Read: %v", err)
+	}
+	return b, nil
+}
+
 func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	srv := &Server{
 		store: store,
@@ -45,34 +54,47 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	}
 
 	if cfg.AuthEnabled {
-		clientID := cfg.OIDCProviders[0].ClientID
-		clientSecret := cfg.OIDCProviders[0].ClientSecret
-		issuerURL := cfg.OIDCProviders[0].IssuerURL
-		redirectURL := cfg.OIDCProviders[0].RedirectURL
-		scopes := cfg.OIDCProviders[0].Scopes
+		srv.authConf = make(map[string]*AuthConfig)
+		for i := range cfg.OIDCProviders {
+			cfgprov := cfg.OIDCProviders[i]
+			id := cfgprov.Id
+			clientID := cfgprov.ClientID
+			clientSecret := cfgprov.ClientSecret
+			issuerURL := cfgprov.IssuerURL
+			redirectURL := cfgprov.RedirectURL
+			scopes := cfgprov.Scopes
 
-		prov, err := oidc.NewProvider(context.Background(), issuerURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
-		}
+			prov, err := oidc.NewProvider(context.Background(), issuerURL)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
+			}
 
-		verifier := prov.Verifier(&oidc.Config{ClientID: clientID})
-		oauth2Cfg := &oauth2.Config{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
-			Endpoint:     prov.Endpoint(),
-			RedirectURL:  redirectURL,
-			Scopes:       scopes,
-		}
+			verifier := prov.Verifier(&oidc.Config{ClientID: clientID})
+			oauth2Cfg := &oauth2.Config{
+				ClientID:     clientID,
+				ClientSecret: clientSecret,
+				Endpoint:     prov.Endpoint(),
+				RedirectURL:  redirectURL,
+				Scopes:       scopes,
+			}
 
-		sc := securecookie.New([]byte("HMAC-KEY-32B-MIN"), []byte("ENC-KEY-32B-MIN"))
-		sc.MaxAge(86400)
-		srv.authConf = &AuthConfig{
-			oauth2:     oauth2Cfg,
-			oidcProv:   prov,
-			idVerifier: verifier,
-			cookie:     sc,
-			state:      NewStateStore(5 * time.Minute),
+			hashKey, err := generateRandomBytes(32)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate random bytes: %w", err)
+			}
+			blockKey, err := generateRandomBytes(32)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate random bytes: %w", err)
+			}
+			sc := securecookie.New(hashKey, blockKey)
+			sc.MaxAge(86400)
+			srv.authConf[id] = &AuthConfig{
+				oauth2:     oauth2Cfg,
+				oidcProv:   prov,
+				idVerifier: verifier,
+				cookie:     sc,
+				state:      NewStateStore(5 * time.Minute),
+			}
 		}
 	}
 
@@ -96,9 +118,10 @@ func (s *Server) Router() http.Handler {
 
 	if s.cfg.AuthEnabled {
 		r.Route("/auth", func(r chi.Router) {
-			r.Get("/login", s.login)
-			r.Get("/callback", s.callback)
-			r.Post("/logout", s.logout)
+			r.Get("/{id}/login", s.login)
+			r.Get("/{id}/callback", s.callback)
+			r.Post("/{id}/logout", s.logout)
+			r.Get("/{id}/get_api_token", s.getAPIToken)
 		})
 	}
 
