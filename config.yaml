@@ -2,6 +2,7 @@
 #auth_token: "XXX"
 #db_path: habits.db
 #api_base_url: http://localhost:3000
+#log_level: info
 
 #server:
 #  host: 0.0.0.0
