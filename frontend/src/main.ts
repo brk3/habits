@@ -63,7 +63,7 @@ type HeatmapDatum = {
 
 async function fetchHabit(habit: string): Promise<HeatmapDatum[]> {
   console.log(`Fetching data for habit: ${habit}`);
-  const res = await fetch(`/api/habits/${habit}`);
+  const res = await fetch(`/api/habits/${habit}`, { credentials: 'include' });
   console.log("Response status:", res);
   const json = await res.json();
 
@@ -84,7 +84,7 @@ async function fetchHabit(habit: string): Promise<HeatmapDatum[]> {
 
 async function fetchHabitSummary(habit: string): Promise<any> {
   console.log(`Fetching summary for habit: ${habit}`);
-  const res = await fetch(`/api/habits/${habit}/summary`);
+  const res = await fetch(`/api/habits/${habit}/summary`, { credentials: 'include' });
   if (!res.ok) {
     throw new Error(`Failed to fetch summary for habit ${habit}: ${res.statusText}`);
   }
@@ -92,7 +92,7 @@ async function fetchHabitSummary(habit: string): Promise<any> {
 }
 
 async function fetchHabits(): Promise<string[]> {
-  const res = await fetch('/api/habits');
+  const res = await fetch('/api/habits', { credentials: 'include' });
   if (!res.ok) {
     throw new Error(`Failed to fetch habits: ${res.statusText}`);
   }

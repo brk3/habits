@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"golang.org/x/oauth2"
 )
 
@@ -46,6 +47,25 @@ func NewStateStore(ttl time.Duration) *StateStore {
 	return s
 }
 
+func (s *Server) getAPIToken(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	name := "oidc." + id + ".token"
+	cookie, err := r.Cookie(name)
+	if err != nil {
+		http.Error(w, "not logged in", http.StatusUnauthorized)
+		return
+	}
+
+	var access string
+	if err := s.authConf[id].cookie.Decode(name, cookie.Value, &access); err != nil {
+		http.Error(w, "invalid token cookie", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(access))
+}
+
 // TODO: I reviewed the code, but it should be rewritten once this is working as
 // desired. Or at least refactored and commented.
 //
@@ -69,12 +89,15 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		}
 		/// ???
 
+		id := chi.URLParam(r, "id")
+		name := "oidc." + id + ".token"
+
 		// 1) Try cookie, then Bearer
 		var rawIDToken string
-		if c, err := r.Cookie("id_token"); err == nil {
-			if err := s.authConf.cookie.Decode("id_token", c.Value, &rawIDToken); err != nil {
+		if c, err := r.Cookie(name); err == nil {
+			if err := s.authConf[id].cookie.Decode(name, c.Value, &rawIDToken); err != nil {
 				// bad cookie value; wipe it!
-				http.SetCookie(w, &http.Cookie{Name: "id_token", Value: "", Path: "/", MaxAge: -1})
+				http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1})
 				rawIDToken = ""
 			}
 		}
@@ -87,7 +110,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		// 2) No token → redirect only for GET+HTML, else 401
 		if rawIDToken == "" {
 			if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
-				http.Redirect(w, r, "/auth/login?return="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
+				http.Redirect(w, r, "/auth/"+id+"/login?return="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
 			} else {
 				w.Header().Set("WWW-Authenticate", `Bearer realm="habits"`)
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -96,11 +119,11 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		}
 
 		// 3) Verify token; on failure, wipe cookie and redirect/401
-		idTok, err := s.authConf.idVerifier.Verify(r.Context(), rawIDToken)
+		idTok, err := s.authConf[id].idVerifier.Verify(r.Context(), rawIDToken)
 		if err != nil {
-			http.SetCookie(w, &http.Cookie{Name: "id_token", Value: "", Path: "/", MaxAge: -1})
+			http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1})
 			if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
-				http.Redirect(w, r, "/auth/login?return="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
+				http.Redirect(w, r, "/auth/"+id+"/login?return="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
 			} else {
 				w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -141,6 +164,8 @@ func strClaim(m map[string]any, k string) string {
 // This should probably be a library dep but I had fun putting it together.
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
 	st := randState()
 	verifier, err := genCodeVerifier(48)
 	if err != nil {
@@ -163,13 +188,13 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 	/// ???
 
-	s.authConf.state.Put(st, authState{
+	s.authConf[id].state.Put(st, authState{
 		Verifier: verifier,
 		Return:   ret,
 		ExpireAt: time.Now().Add(5 * time.Minute),
 	})
 
-	authURL := s.authConf.oauth2.AuthCodeURL(
+	authURL := s.authConf[id].oauth2.AuthCodeURL(
 		st,
 		oauth2.SetAuthURLParam("code_challenge", challenge),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
@@ -178,6 +203,8 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	name := "oidc." + id + ".token"
 	st := param(r, "state")
 	if st == "" {
 		http.Error(w, "missing state", http.StatusBadRequest)
@@ -189,13 +216,13 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	saved, ok := s.authConf.state.GetAndDelete(st)
+	saved, ok := s.authConf[id].state.GetAndDelete(st)
 	if !ok || saved.Verifier == "" {
 		http.Error(w, "invalid or expired state", http.StatusBadRequest)
 		return
 	}
 
-	tok, err := s.authConf.oauth2.Exchange(
+	tok, err := s.authConf[id].oauth2.Exchange(
 		r.Context(),
 		code,
 		oauth2.SetAuthURLParam("code_verifier", saved.Verifier),
@@ -209,14 +236,14 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no id_token", http.StatusBadGateway)
 		return
 	}
-	if _, err := s.authConf.idVerifier.Verify(r.Context(), rawIDToken); err != nil {
+	if _, err := s.authConf[id].idVerifier.Verify(r.Context(), rawIDToken); err != nil {
 		http.Error(w, "id_token invalid", http.StatusUnauthorized)
 		return
 	}
 
-	val, _ := s.authConf.cookie.Encode("id_token", rawIDToken)
+	val, _ := s.authConf[id].cookie.Encode(name, rawIDToken)
 	http.SetCookie(w, &http.Cookie{
-		Name:     "id_token",
+		Name:     name,
 		Value:    val,
 		Path:     "/",
 		HttpOnly: true,
@@ -229,8 +256,10 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	name := "oidc." + id + ".token"
 	http.SetCookie(w, &http.Cookie{
-		Name:     "id_token",
+		Name:     name,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
