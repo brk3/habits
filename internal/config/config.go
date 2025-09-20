@@ -125,10 +125,6 @@ func (c *Config) finalize() error {
 		}
 	}
 
-	if len(c.OIDCProviders) > 0 && !c.AuthEnabled {
-		c.AuthEnabled = true
-	}
-
 	for i := range c.OIDCProviders {
 		provider := &c.OIDCProviders[i]
 		name := provider.Name
