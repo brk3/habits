@@ -122,10 +122,10 @@ func (s *Server) Router() http.Handler {
 	if s.cfg.AuthEnabled {
 		r.Route("/auth", func(r chi.Router) {
 			r.Get("/login", s.simpleLogin)
-			r.Get("/{id}/login", s.login)
-			r.Get("/{id}/callback", s.callback)
-			r.Post("/{id}/logout", s.logout)
-			r.Get("/{id}/get_api_token", s.getAPIToken)
+			r.Get("/login/{id}", s.login)
+			r.Get("/callback/{id}", s.callback)
+			r.Get("/logout", s.logout)
+			r.Get("/get_api_token", s.getAPIToken)
 		})
 	}
 
