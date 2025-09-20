@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/server"
@@ -19,6 +21,12 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		consoleHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: cfg.SLogLevel,
+		})
+		logger := slog.New(consoleHandler)
+		slog.SetDefault(logger) // This also captures all the log.Println as INFO
 
 		log.Println("Opening DB...")
 		store, err := bolt.Open(cfg.DBPath)

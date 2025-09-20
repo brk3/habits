@@ -3,9 +3,11 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -15,6 +17,7 @@ type Config struct {
 	AuthToken   string `yaml:"auth_token"`
 	DBPath      string `yaml:"db_path"`
 	APIBaseURL  string `yaml:"api_base_url"`
+	LogLevel    string `yaml:"log_level"`
 
 	Server struct {
 		Host string `yaml:"host"`
@@ -46,6 +49,8 @@ type Config struct {
 		ResendAPIKey   string `yaml:"resend_api_key"`
 		ThresholdHours int    `yaml:"threshold_hours"`
 	} `yaml:"nudge"`
+
+	SLogLevel slog.Level `yaml:"-"`
 }
 
 func Load() (*Config, error) {
@@ -92,6 +97,9 @@ func (c *Config) applyDefaults() {
 	if c.AuthToken == "" {
 		c.AuthToken = "XXX"
 	}
+	if c.LogLevel == "" {
+		c.LogLevel = "info"
+	}
 
 	if c.Nudge.ThresholdHours == 0 {
 		c.Nudge.ThresholdHours = 3
@@ -107,6 +115,19 @@ func (c *Config) applyDefaults() {
 
 func (c *Config) finalize() error {
 	var err error
+
+	switch strings.ToLower(c.LogLevel) {
+	case "debug":
+		c.SLogLevel = slog.LevelDebug
+	case "info":
+		c.SLogLevel = slog.LevelInfo
+	case "warn":
+		c.SLogLevel = slog.LevelWarn
+	case "error":
+		c.SLogLevel = slog.LevelError
+	default:
+		return fmt.Errorf("invalid log_level: %s", c.LogLevel)
+	}
 
 	if c.DBPath != "" {
 		if c.DBPath, err = resolvePath(c.DBPath); err != nil {
