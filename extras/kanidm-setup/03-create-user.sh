@@ -45,7 +45,7 @@ ${kanidm[@]} system oauth2 update-scope-map habits habits_users openid profile
 
 # Add redirect URL for OAuth callback
 # Update this URL to match your habits app callback
-${kanidm[@]} system oauth2 add-redirect-url habits https://habits.aiectomy.xyz/auth/01K5JMC5CM2FQGQ6AYVJEYKMVJ/callback
+${kanidm[@]} system oauth2 add-redirect-url habits https://habits.aiectomy.xyz/api/auth/callback/01K5JMC5CM2FQGQ6AYVJEYKMVJ
 
 # Use short usernames for cleaner display
 ${kanidm[@]} system oauth2 prefer-short-username habits
