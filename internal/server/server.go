@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/brk3/habits/internal/config"
+	"github.com/brk3/habits/internal/logger"
 	"github.com/brk3/habits/internal/storage"
 	"github.com/brk3/habits/pkg/habit"
 	"github.com/brk3/habits/pkg/versioninfo"
@@ -49,12 +50,14 @@ func generateRandomBytes(n int) ([]byte, error) {
 }
 
 func New(cfg *config.Config, store storage.Store) (*Server, error) {
+	logger.Info("Initializing server", "auth_enabled", cfg.AuthEnabled)
 	srv := &Server{
 		store: store,
 		cfg:   cfg,
 	}
 
 	if cfg.AuthEnabled {
+		logger.Info("Configuring OIDC providers", "count", len(cfg.OIDCProviders))
 		srv.authConf = make(map[string]*AuthConfig)
 		for i := range cfg.OIDCProviders {
 			cfgprov := cfg.OIDCProviders[i]
@@ -66,8 +69,10 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 			redirectURL := cfgprov.RedirectURL
 			scopes := cfgprov.Scopes
 
+			logger.Debug("Setting up OIDC provider", "id", id, "name", name, "issuer", issuerURL)
 			prov, err := oidc.NewProvider(context.Background(), issuerURL)
 			if err != nil {
+				logger.Error("Failed to create OIDC provider", "id", id, "error", err)
 				return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
 			}
 
@@ -98,9 +103,11 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 				cookie:     sc,
 				state:      NewStateStore(5 * time.Minute),
 			}
+			logger.Info("OIDC provider configured successfully", "id", id, "name", name)
 		}
 	}
 
+	logger.Info("Server initialization complete")
 	return srv, nil
 }
 
@@ -145,7 +152,9 @@ func (s *Server) Router() http.Handler {
 
 func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 	habitID := chi.URLParam(r, "habit_id")
+	logger.Debug("Getting habit summary", "habit_id", habitID, "user_id", userID)
 	if userID == "" || habitID == "" {
+		logger.Warn("Missing required parameters", "user_id", userID, "habit_id", habitID)
 		http.Error(w, `{"error":"user id and habit id are required"}`, http.StatusBadRequest)
 		return
 	}
@@ -213,15 +222,19 @@ func (s *Server) getVersionInfo(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) listHabits(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Listing habits", "user_id", userID)
 	if userID == "" {
+		logger.Warn("Missing user ID for list habits")
 		http.Error(w, `{"error":"user id is required"}`, http.StatusBadRequest)
 		return
 	}
 	names, err := s.store.ListHabitNames(userID)
 	if err != nil {
+		logger.Error("Failed to list habits", "user_id", userID, "error", err)
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return
 	}
+	logger.Debug("Listed habits successfully", "user_id", userID, "count", len(names))
 	if err := writeJSON(w, http.StatusOK, HabitListResponse{Habits: names}); err != nil {
 		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
 		return
@@ -229,12 +242,15 @@ func (s *Server) listHabits(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
+	logger.Debug("Tracking habit", "user_id", userID)
 	if userID == "" {
+		logger.Warn("Missing user ID for track habit")
 		http.Error(w, `{"error":"user id is required"}`, http.StatusBadRequest)
 		return
 	}
 	var h habit.Habit
 	if err := json.NewDecoder(r.Body).Decode(&h); err != nil {
+		logger.Warn("Invalid JSON in track habit request", "error", err)
 		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
 		return
 	}
@@ -242,10 +258,13 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
+	logger.Info("Storing habit", "user_id", userID, "habit_name", h.Name, "timestamp", h.TimeStamp)
 	if err := s.store.PutHabit(userID, h); err != nil {
+		logger.Error("Failed to store habit", "user_id", userID, "habit_name", h.Name, "error", err)
 		http.Error(w, `{"error":"database write failed"}`, http.StatusInternalServerError)
 		return
 	}
+	logger.Info("Habit tracked successfully", "user_id", userID, "habit_name", h.Name)
 
 	habits, _ := s.store.ListHabitNames(userID)
 	activeHabits.Set(float64(len(habits)))
@@ -285,16 +304,20 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
 	habitID := chi.URLParam(r, "habit_id")
+	logger.Info("Deleting habit", "user_id", userID, "habit_id", habitID)
 	if userID == "" || habitID == "" {
+		logger.Warn("Missing required parameters for delete", "user_id", userID, "habit_id", habitID)
 		http.Error(w, `{"error":"user id and habit id are required"}`, http.StatusBadRequest)
 		return
 	}
 
 	err := s.store.DeleteHabit(userID, habitID)
 	if err != nil {
+		logger.Error("Failed to delete habit", "user_id", userID, "habit_id", habitID, "error", err)
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return
 	}
+	logger.Info("Habit deleted successfully", "user_id", userID, "habit_id", habitID)
 
 	habits, _ := s.store.ListHabitNames(userID)
 	activeHabits.Set(float64(len(habits)))

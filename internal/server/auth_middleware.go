@@ -320,6 +320,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 			SameSite: http.SameSiteLaxMode,
 		})
 	}
+	logger.Info("User logout completed")
 	w.WriteHeader(http.StatusNoContent)
 }
 

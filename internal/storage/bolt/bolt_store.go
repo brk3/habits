@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/brk3/habits/internal/logger"
 	"github.com/brk3/habits/internal/storage"
 	"github.com/brk3/habits/pkg/habit"
 	"go.etcd.io/bbolt"
@@ -19,8 +20,10 @@ type Store struct {
 }
 
 func Open(path string) (*Store, error) {
+	logger.Debug("Opening BoltDB", "path", path)
 	db, err := bbolt.Open(path, 0600, nil)
 	if err != nil {
+		logger.Error("Failed to open BoltDB", "path", path, "error", err)
 		return nil, err
 	}
 
@@ -30,10 +33,12 @@ func Open(path string) (*Store, error) {
 		_, err := tx.CreateBucketIfNotExists([]byte(rootBucket))
 		return err
 	}); err != nil {
+		logger.Error("Failed to create root bucket", "bucket", rootBucket, "error", err)
 		_ = db.Close()
 		return nil, err
 	}
 
+	logger.Info("BoltDB opened successfully", "path", path)
 	return s, nil
 }
 
@@ -73,11 +78,18 @@ func (s *Store) getUserHabitsBucket(tx *bbolt.Tx, userID string) (*bbolt.Bucket,
 }
 
 func (s *Store) Close() error {
-	return s.db.Close()
+	logger.Debug("Closing BoltDB")
+	err := s.db.Close()
+	if err != nil {
+		logger.Error("Failed to close BoltDB", "error", err)
+	}
+	return err
 }
 
 func (s *Store) PutHabit(userID string, h habit.Habit) error {
+	logger.Debug("Storing habit", "user_id", userID, "habit_name", h.Name)
 	if err := s.ensureUserHabitsBucketExists(userID); err != nil {
+		logger.Error("Failed to ensure bucket exists", "user_id", userID, "error", err)
 		return err
 	}
 	return s.db.Update(func(tx *bbolt.Tx) error {
@@ -87,7 +99,11 @@ func (s *Store) PutHabit(userID string, h habit.Habit) error {
 		}
 		val, _ := json.Marshal(h)
 		key := fmt.Appendf(nil, "%s/%s", h.Name, time.Unix(h.TimeStamp, 0).Format(time.RFC3339))
-		return bucket.Put(key, val)
+		err = bucket.Put(key, val)
+		if err == nil {
+			logger.Debug("Habit stored successfully", "key", string(key))
+		}
+		return err
 	})
 }
 
