@@ -19,7 +19,7 @@
 #   issuer_url: "https://idm.example.com/oauth2/openid/<your-client-id>"
 #   client_id: "your-client-id"
 #   client_secret: "your-client-secret"
-#   redirect_url: "https://habits.example.com/auth/callback"
+#   redirect_url: "https://habits.example.com/auth/callback/01K5JMC5CM2FQGQ6AYVJEYKMVJ"
 #   scopes: ["openid", "profile"]
 
 # nudge:

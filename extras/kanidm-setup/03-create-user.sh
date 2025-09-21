@@ -45,7 +45,7 @@ ${kanidm[@]} system oauth2 update-scope-map habits habits_users openid profile
 
 # Add redirect URL for OAuth callback
 # Update this URL to match your habits app callback
-${kanidm[@]} system oauth2 add-redirect-url habits https://habits.aiectomy.xyz/api/auth/callback/01K5JMC5CM2FQGQ6AYVJEYKMVJ
+${kanidm[@]} system oauth2 add-redirect-url habits https://habits.aiectomy.xyz/auth/callback/01K5JMC5CM2FQGQ6AYVJEYKMVJ
 
 # Use short usernames for cleaner display
 ${kanidm[@]} system oauth2 prefer-short-username habits
@@ -68,6 +68,6 @@ echo "Setup complete! Next steps:"
 echo "1. Use the client ID and secret in your habits app configuration"
 echo "2. Set the callback URL in your habits app to match the redirect URL above"
 echo "3. Configure your habits app to use these OIDC endpoints:"
-echo "   - Authorization: https://idm.aiectomy.xyz:6443/ui/oauth2"
-echo "   - Token: https://idm.aiectomy.xyz:6443/oauth2/token"
-echo "   - UserInfo: https://idm.aiectomy.xyz:6443/oauth2/openid/paul/userinfo"
+echo "   - Authorization: https://idm.aiectomy.xyz/ui/oauth2"
+echo "   - Token: https://idm.aiectomy.xyz/oauth2/token"
+echo "   - UserInfo: https://idm.aiectomy.xyz/oauth2/openid/paul/userinfo"
