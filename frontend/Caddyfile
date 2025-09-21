@@ -11,6 +11,10 @@
     handle @health {
         reverse_proxy http://habits-server:3000
     }
+    @auth path /auth/*
+    handle @auth {
+        reverse_proxy http://habits-server:3000
+    }
     @api path /api/*
     handle @api {
         uri strip_prefix /api
