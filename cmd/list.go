@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/brk3/habits/internal/apiclient"
-	"github.com/brk3/habits/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -18,11 +17,6 @@ var listCmd = &cobra.Command{
 }
 
 func list(cmd *cobra.Command) {
-	cfg, err := config.Load()
-	if err != nil {
-		cmd.Println("Error loading config file", err)
-		return
-	}
 	apiclient := apiclient.New(cfg.APIBaseURL, cfg.AuthToken)
 
 	habits, err := apiclient.ListHabits(context.Background())

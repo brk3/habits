@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/pkg/versioninfo"
 	"github.com/spf13/cobra"
 )
@@ -20,12 +19,6 @@ and server if available.`,
 }
 
 func version(cmd *cobra.Command) {
-	cfg, err := config.Load()
-	if err != nil {
-		cmd.Println("Error loading config file", err)
-		return
-	}
-
 	resp, err := http.Get(cfg.APIBaseURL + "/version")
 	if err != nil {
 		cmd.Println("Error fetching server version:", err)

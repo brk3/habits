@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/brk3/habits/internal/apiclient"
-	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/pkg/habit"
 	"github.com/spf13/cobra"
 )
@@ -45,13 +44,8 @@ func track(name string, note string, cmd *cobra.Command) {
 		Note:      note,
 		TimeStamp: time.Now().Unix(),
 	}
-	cfg, err := config.Load()
-	if err != nil {
-		cmd.Println("Error loading config file", err)
-		return
-	}
 	apiclient := apiclient.New(cfg.APIBaseURL, cfg.AuthToken)
-	err = apiclient.PutHabit(cmd.Context(), h)
+	err := apiclient.PutHabit(cmd.Context(), h)
 	if err != nil {
 		cmd.Printf("Error recording habit: %v\n", err)
 		return

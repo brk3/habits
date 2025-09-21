@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/nudge"
 	"github.com/brk3/habits/internal/nudge/resend"
 
@@ -12,11 +11,6 @@ var nudgeCmd = &cobra.Command{
 	Use:   "nudge",
 	Short: "Send a reminder for habit streaks expiring within a certain window",
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg, err := config.Load()
-		if err != nil {
-			cmd.Printf("error loading config file: %v\n", err)
-			return
-		}
 		if cfg.Nudge.ResendAPIKey == "" {
 			cmd.Println("nudge.resend_api_key is required")
 			return

@@ -7,13 +7,13 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/brk3/habits/internal/logger"
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/oauth2"
 )
@@ -118,7 +118,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		// I dont think this is needed anymore since I changed the routing in the chi server part above.
 		p := r.URL.Path
 		if strings.HasPrefix(p, "/auth/") || p == "/version" || strings.HasPrefix(p, "/metrics") {
-			slog.Error("We shouldn't have run")
+			logger.Error("We shouldn't have run")
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -135,7 +135,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 				continue
 			}
 			if err != nil {
-				slog.Debug("Unknown error checking oidc cookie", "err", err)
+				logger.Debug("Unknown error checking oidc cookie", "err", err)
 				continue
 			}
 			id = i

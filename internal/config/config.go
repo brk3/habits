@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/brk3/habits/internal/logger"
 )
 
 type Config struct {
@@ -222,7 +224,7 @@ func (c *Config) validate() error {
 	}
 
 	if len(c.OIDCProviders) > 0 && !c.AuthEnabled {
-		fmt.Println("OIDC Providers have been configured, but auth is disabled")
+		logger.Warn("OIDC Providers have been configured, but auth is disabled")
 	}
 
 	seen := make(map[string]struct{}, len(c.OIDCProviders))

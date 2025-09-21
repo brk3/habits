@@ -2,12 +2,12 @@ package nudge
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/brk3/habits/internal/apiclient"
 	"github.com/brk3/habits/internal/config"
+	"github.com/brk3/habits/internal/logger"
 )
 
 func Nudge(cfg *config.Config, n Notifier, nudgeThreshold int) {
@@ -15,9 +15,9 @@ func Nudge(cfg *config.Config, n Notifier, nudgeThreshold int) {
 	expiring, err := GetHabitsExpiringIn(context.Background(), apiclient,
 		time.Now().UTC(), time.Duration(nudgeThreshold)*time.Hour)
 	if err != nil {
-		fmt.Println("error getting expiring habits:", err)
+		logger.Error("error getting expiring habits", "err", err)
 	}
-	fmt.Printf("expiring habits: %s\n", strings.Join(expiring, ", "))
+	logger.Info("expiring habits", "habits", strings.Join(expiring, ", "))
 
 	if len(expiring) > 0 {
 		n.SendNudge(expiring, nudgeThreshold)

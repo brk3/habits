@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"log/slog"
 	"net/http"
-	"os"
 
-	"github.com/brk3/habits/internal/config"
+	"github.com/brk3/habits/internal/logger"
 	"github.com/brk3/habits/internal/server"
 	"github.com/brk3/habits/internal/storage/bolt"
 	"github.com/spf13/cobra"
@@ -17,18 +14,7 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start the HTTP server",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
-		if err != nil {
-			return err
-		}
-
-		consoleHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-			Level: cfg.SLogLevel,
-		})
-		logger := slog.New(consoleHandler)
-		slog.SetDefault(logger) // This also captures all the log.Println as INFO
-
-		log.Println("Opening DB...")
+		logger.Info("Opening DB...")
 		store, err := bolt.Open(cfg.DBPath)
 		if err != nil {
 			return err
@@ -40,7 +26,7 @@ var serverCmd = &cobra.Command{
 			return err
 		}
 		addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-		log.Println("Listening on", addr)
+		logger.Info("Listening on", "addr", addr)
 		if cfg.Server.TLS.Enabled {
 			return http.ListenAndServeTLS(addr, cfg.Server.TLS.CertFile, cfg.Server.TLS.KeyFile, s.Router())
 		} else {
