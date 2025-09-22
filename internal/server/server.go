@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -24,6 +23,7 @@ import (
 )
 
 // TODO(pbourke): implement from token
+// also set sane default if auth disabled
 const userID = "XXX"
 
 type Server struct {
@@ -39,14 +39,6 @@ type AuthConfig struct {
 	idVerifier *oidc.IDTokenVerifier
 	cookie     *securecookie.SecureCookie
 	state      *StateStore
-}
-
-func generateRandomBytes(n int) ([]byte, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return nil, fmt.Errorf("rand.Read: %v", err)
-	}
-	return b, nil
 }
 
 func New(cfg *config.Config, store storage.Store) (*Server, error) {
@@ -85,14 +77,8 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 				Scopes:       scopes,
 			}
 
-			hashKey, err := generateRandomBytes(32)
-			if err != nil {
-				return nil, fmt.Errorf("failed to generate random bytes: %w", err)
-			}
-			blockKey, err := generateRandomBytes(32)
-			if err != nil {
-				return nil, fmt.Errorf("failed to generate random bytes: %w", err)
-			}
+			hashKey := securecookie.GenerateRandomKey(32)
+			blockKey := securecookie.GenerateRandomKey(32)
 			sc := securecookie.New(hashKey, blockKey)
 			sc.MaxAge(86400)
 			srv.authConf[id] = &AuthConfig{
