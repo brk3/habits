@@ -22,6 +22,7 @@ func TestLoad_CustomConfig(t *testing.T) {
 	t.Setenv("HABITS_CONFIG", configFile)
 
 	c := Config{}
+	c.Server.Port = 1234
 	d, err := yaml.Marshal(&c)
 	if err != nil {
 		t.Fatalf("failed to marshal config: %v", err)
@@ -30,8 +31,17 @@ func TestLoad_CustomConfig(t *testing.T) {
 		t.Fatalf("failed to write config file: %v", err)
 	}
 
-	_, err = Load()
+	// check custom setting
+	cfg, err := Load()
 	if err != nil {
 		t.Fatal("error opening config:", err)
+	}
+	if cfg.Server.Port != 1234 {
+		t.Errorf("expected server port 1234, got %d", cfg.Server.Port)
+	}
+
+	// check default setting
+	if cfg.Server.Host != "0.0.0.0" {
+		t.Errorf("expected default server host 0.0.0.0, got %s", cfg.Server.Host)
 	}
 }
