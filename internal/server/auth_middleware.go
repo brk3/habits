@@ -165,16 +165,6 @@ type User struct {
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		/// ???
-		// I dont think this is needed anymore since I changed the routing in the chi server part above.
-		p := r.URL.Path
-		if strings.HasPrefix(p, "/auth/") || p == "/version" || strings.HasPrefix(p, "/metrics") {
-			logger.Error("We shouldn't have run")
-			next.ServeHTTP(w, r)
-			return
-		}
-		/// ???
-
 		// This block will go away when we have a session id
 		// Current limitation is if one cookie is found, we don't check others. NBD, just /auth/logout
 		id := "bad_id"
