@@ -14,6 +14,21 @@ import (
 	"github.com/brk3/habits/internal/logger"
 )
 
+type OIDCProvider struct {
+	Id                string   `yaml:"id"`
+	Name              string   `yaml:"name"`
+	IssuerURL         string   `yaml:"issuer_url"`
+	ClientID          string   `yaml:"client_id"`
+	ClientSecret      string   `yaml:"client_secret"`
+	RedirectURL       string   `yaml:"redirect_url"`
+	Scopes            []string `yaml:"scopes"`
+	LogoutRedirectURL string   `yaml:"logout_redirect_url"`
+
+	issuerURL         *url.URL `yaml:"-"`
+	redirectURL       *url.URL `yaml:"-"`
+	logoutRedirectURL *url.URL `yaml:"-"`
+}
+
 type Config struct {
 	AuthEnabled bool   `yaml:"auth_enabled"`
 	AuthToken   string `yaml:"auth_token"`
@@ -31,20 +46,7 @@ type Config struct {
 		} `yaml:"tls"`
 	} `yaml:"server"`
 
-	OIDCProviders []struct {
-		Id                string   `yaml:"id"`
-		Name              string   `yaml:"name"`
-		IssuerURL         string   `yaml:"issuer_url"`
-		ClientID          string   `yaml:"client_id"`
-		ClientSecret      string   `yaml:"client_secret"`
-		RedirectURL       string   `yaml:"redirect_url"`
-		Scopes            []string `yaml:"scopes"`
-		LogoutRedirectURL string   `yaml:"logout_redirect_url"`
-
-		issuerURL         *url.URL `yaml:"-"`
-		redirectURL       *url.URL `yaml:"-"`
-		logoutRedirectURL *url.URL `yaml:"-"`
-	} `yaml:"oidc_providers"`
+	OIDCProviders []OIDCProvider `yaml:"oidc_providers"`
 
 	Nudge struct {
 		NotifyEmail    string `yaml:"notify_email"`
