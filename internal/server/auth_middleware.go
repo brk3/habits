@@ -165,6 +165,8 @@ type User struct {
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TODO(pbourke): fix bug with cookie handling - figure out how provider is meant to map to request
+
 		// This block will go away when we have a session id
 		// Current limitation is if one cookie is found, we don't check others. NBD, just /auth/logout
 		id := "bad_id"

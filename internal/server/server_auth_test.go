@@ -54,6 +54,22 @@ func TestAuthEnabled_NotLoggedIn_Redirect(t *testing.T) {
 	}
 }
 
+/*
+func TestAuthEnabled_LoggedIn_OK(t *testing.T) {
+	h := newTestServerWithAuth(t, newMemStore())
+
+	req := httptest.NewRequest(http.MethodGet, "/habits/", nil)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+"XXX")
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got %d want 200", rr.Code)
+	}
+}
+*/
+
 func newTestServerWithAuth(t *testing.T, st storage.Store) http.Handler {
 	mockOIDC := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/.well-known/openid-configuration" {
