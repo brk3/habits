@@ -13,8 +13,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/logger"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/securecookie"
 	"golang.org/x/oauth2"
 )
 
@@ -47,6 +50,54 @@ func NewStateStore(ttl time.Duration) *StateStore {
 		}
 	}()
 	return s
+}
+
+func ConfigureOIDCProviders(cfg *config.Config) (map[string]*AuthConfig, error) {
+	logger.Info("Configuring OIDC providers", "count", len(cfg.OIDCProviders))
+	authConf := make(map[string]*AuthConfig)
+
+	for i := range cfg.OIDCProviders {
+		cfgprov := cfg.OIDCProviders[i]
+		id := cfgprov.Id
+		name := cfgprov.Name
+		clientID := cfgprov.ClientID
+		clientSecret := cfgprov.ClientSecret
+		issuerURL := cfgprov.IssuerURL
+		redirectURL := cfgprov.RedirectURL
+		scopes := cfgprov.Scopes
+
+		logger.Debug("Setting up OIDC provider", "id", id, "name", name, "issuer", issuerURL)
+		prov, err := oidc.NewProvider(context.Background(), issuerURL)
+		if err != nil {
+			logger.Error("Failed to create OIDC provider", "id", id, "error", err)
+			return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
+		}
+
+		verifier := prov.Verifier(&oidc.Config{ClientID: clientID})
+		oauth2Cfg := &oauth2.Config{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			Endpoint:     prov.Endpoint(),
+			RedirectURL:  redirectURL,
+			Scopes:       scopes,
+		}
+
+		hashKey := securecookie.GenerateRandomKey(32)
+		blockKey := securecookie.GenerateRandomKey(32)
+		sc := securecookie.New(hashKey, blockKey)
+		sc.MaxAge(86400)
+		authConf[id] = &AuthConfig{
+			name:       name,
+			oauth2:     oauth2Cfg,
+			oidcProv:   prov,
+			idVerifier: verifier,
+			cookie:     sc,
+			state:      NewStateStore(5 * time.Minute),
+		}
+		logger.Info("OIDC provider configured successfully", "id", id, "name", name)
+	}
+
+	return authConf, nil
 }
 
 func (s *Server) simpleLogin(w http.ResponseWriter, r *http.Request) {

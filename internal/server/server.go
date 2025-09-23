@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -49,47 +48,10 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	}
 
 	if cfg.AuthEnabled {
-		logger.Info("Configuring OIDC providers", "count", len(cfg.OIDCProviders))
-		srv.authConf = make(map[string]*AuthConfig)
-		for i := range cfg.OIDCProviders {
-			cfgprov := cfg.OIDCProviders[i]
-			id := cfgprov.Id
-			name := cfgprov.Name
-			clientID := cfgprov.ClientID
-			clientSecret := cfgprov.ClientSecret
-			issuerURL := cfgprov.IssuerURL
-			redirectURL := cfgprov.RedirectURL
-			scopes := cfgprov.Scopes
-
-			logger.Debug("Setting up OIDC provider", "id", id, "name", name, "issuer", issuerURL)
-			prov, err := oidc.NewProvider(context.Background(), issuerURL)
-			if err != nil {
-				logger.Error("Failed to create OIDC provider", "id", id, "error", err)
-				return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
-			}
-
-			verifier := prov.Verifier(&oidc.Config{ClientID: clientID})
-			oauth2Cfg := &oauth2.Config{
-				ClientID:     clientID,
-				ClientSecret: clientSecret,
-				Endpoint:     prov.Endpoint(),
-				RedirectURL:  redirectURL,
-				Scopes:       scopes,
-			}
-
-			hashKey := securecookie.GenerateRandomKey(32)
-			blockKey := securecookie.GenerateRandomKey(32)
-			sc := securecookie.New(hashKey, blockKey)
-			sc.MaxAge(86400)
-			srv.authConf[id] = &AuthConfig{
-				name:       name,
-				oauth2:     oauth2Cfg,
-				oidcProv:   prov,
-				idVerifier: verifier,
-				cookie:     sc,
-				state:      NewStateStore(5 * time.Minute),
-			}
-			logger.Info("OIDC provider configured successfully", "id", id, "name", name)
+		var err error
+		srv.authConf, err = ConfigureOIDCProviders(cfg)
+		if err != nil {
+			return nil, err
 		}
 	}
 
