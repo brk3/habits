@@ -59,12 +59,6 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	return srv, nil
 }
 
-func writeJSON(w http.ResponseWriter, code int, v any) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	return json.NewEncoder(w).Encode(v)
-}
-
 func (s *Server) Router() http.Handler {
 	r := chi.NewRouter()
 
@@ -96,6 +90,12 @@ func (s *Server) Router() http.Handler {
 	})
 
 	return r
+}
+
+func writeJSON(w http.ResponseWriter, code int, v any) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	return json.NewEncoder(w).Encode(v)
 }
 
 func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
