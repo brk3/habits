@@ -60,7 +60,7 @@ func TestAuthEnabled_LoggedIn_OK(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/habits/", nil)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+"XXX")
+	req.Header.Set("Authorization", "Bearer "+"test:XXX")
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
 

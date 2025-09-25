@@ -26,9 +26,10 @@ import (
 const userID = "XXX"
 
 type Server struct {
-	store    storage.Store
-	authConf map[string]*AuthConfig
-	cfg      *config.Config
+	store         storage.Store
+	authConf      map[string]*AuthConfig
+	cfg           *config.Config
+	sessionCookie *securecookie.SecureCookie
 }
 
 type AuthConfig struct {
@@ -36,7 +37,6 @@ type AuthConfig struct {
 	oauth2     *oauth2.Config
 	oidcProv   *oidc.Provider
 	idVerifier *oidc.IDTokenVerifier
-	cookie     *securecookie.SecureCookie
 	state      *StateStore
 }
 
@@ -49,7 +49,7 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 
 	if cfg.AuthEnabled {
 		var err error
-		srv.authConf, err = ConfigureOIDCProviders(cfg)
+		srv.authConf, srv.sessionCookie, err = ConfigureOIDCProviders(cfg)
 		if err != nil {
 			return nil, err
 		}
