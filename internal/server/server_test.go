@@ -340,6 +340,12 @@ func TestDeleteHabit(t *testing.T) {
 	}
 }
 
+func TestUserIdIsAnonymousWhenAuthDisabled(t *testing.T) {
+	if getUserID(false, nil) != "anonymous" {
+		t.Fatal("expected anonymous user ID when auth is disabled")
+	}
+}
+
 func newTestServer(st storage.Store) http.Handler {
 	s, _ := New(&config.Config{}, st)
 	return s.Router()

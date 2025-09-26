@@ -102,7 +102,7 @@ func (c *Config) applyDefaults() {
 		c.AuthToken = "XXX"
 	}
 	if c.LogLevel == "" {
-		c.LogLevel = "info"
+		c.LogLevel = "debug"
 	}
 
 	if c.Nudge.ThresholdHours == 0 {
