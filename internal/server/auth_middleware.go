@@ -219,7 +219,7 @@ func getUserID(authEnabled bool, r *http.Request) string {
 		return "anonymous"
 	}
 
-	user, ok := r.Context().Value(userCtxKey{}).(User)
+	user, ok := r.Context().Value(userCtxKey{}).(*User)
 	if !ok {
 		logger.Error("No user in context")
 		return ""

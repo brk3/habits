@@ -1,8 +1,10 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/brk3/habits/internal/config"
@@ -54,21 +56,45 @@ func TestAuthEnabled_NotLoggedIn_Redirect(t *testing.T) {
 	}
 }
 
-/*
-func TestAuthEnabled_LoggedIn_OK(t *testing.T) {
-	h := newTestServerWithAuth(t, newMemStore())
+func TestGetUserID_WithValidUser(t *testing.T) {
+	// Test with auth enabled and valid user in context
+	user := &User{
+		Subject: "test-subject",
+		Email:   "test@example.com",
+		Claims: map[string]any{
+			"iss": "https://test-issuer.com",
+			"sub": "test-subject",
+		},
+	}
 
-	req := httptest.NewRequest(http.MethodGet, "/habits/", nil)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+"test:XXX")
-	rr := httptest.NewRecorder()
-	h.ServeHTTP(rr, req)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	ctx := context.WithValue(req.Context(), userCtxKey{}, user)
+	req = req.WithContext(ctx)
 
-	if rr.Code != http.StatusOK {
-		t.Fatalf("got %d want 200", rr.Code)
+	userID := getUserID(true, req)
+	if userID == "" {
+		t.Fatal("getUserID returned empty string for valid user")
+	}
+	if !strings.HasPrefix(userID, "user-") {
+		t.Fatalf("getUserID returned %q, expected to start with 'user-'", userID)
 	}
 }
-*/
+
+func TestGetUserID_AuthDisabled(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	userID := getUserID(false, req)
+	if userID != "anonymous" {
+		t.Fatalf("getUserID returned %q, expected 'anonymous'", userID)
+	}
+}
+
+func TestGetUserID_NoUserInContext(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	userID := getUserID(true, req)
+	if userID != "" {
+		t.Fatalf("getUserID returned %q, expected empty string when no user in context", userID)
+	}
+}
 
 func newTestServerWithAuth(t *testing.T, st storage.Store) http.Handler {
 	mockOIDC := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
