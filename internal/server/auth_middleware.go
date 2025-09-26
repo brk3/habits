@@ -62,7 +62,7 @@ func ConfigureOIDCProviders(cfg *config.Config) (map[string]*AuthConfig, *secure
 	sessionHashKey := securecookie.GenerateRandomKey(32)
 	sessionBlockKey := securecookie.GenerateRandomKey(32)
 	sessionCookie := securecookie.New(sessionHashKey, sessionBlockKey)
-	sessionCookie.MaxAge(86400) // 24 hours
+	sessionCookie.MaxAge(259200) // 3 days
 
 	for i := range cfg.OIDCProviders {
 		cfgprov := cfg.OIDCProviders[i]

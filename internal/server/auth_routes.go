@@ -111,7 +111,7 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   int((8 * time.Hour).Seconds()),
+		MaxAge:   int((3 * 24 * time.Hour).Seconds()),
 	})
 
 	http.Redirect(w, r, saved.Return, http.StatusFound)
