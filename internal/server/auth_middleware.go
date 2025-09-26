@@ -228,8 +228,12 @@ func getUserID(authEnabled bool, r *http.Request) string {
 	iss := user.Claims["iss"].(string)
 	sub := user.Claims["sub"].(string)
 
-	hash := sha256.Sum256([]byte(iss + "|" + sub))
-	return fmt.Sprintf("user-%x", hash[:8])
+	userInfo := iss + "|" + sub
+	hash := sha256.Sum256([]byte(userInfo))
+	bucketName := fmt.Sprintf("user-%x", hash[:8])
+
+	logger.Debug("User bucket mapping", "user", userInfo, "bucket", bucketName)
+	return bucketName
 }
 
 func (s *StateStore) Put(key string, v authState) {
