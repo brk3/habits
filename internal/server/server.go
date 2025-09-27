@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/logger"
@@ -21,6 +22,8 @@ type Server struct {
 	authConf      map[string]*AuthConfig
 	cfg           *config.Config
 	sessionCookie *securecookie.SecureCookie
+	refreshTokens map[string]string
+	refreshMutex  sync.RWMutex
 }
 
 type AuthConfig struct {
@@ -34,8 +37,9 @@ type AuthConfig struct {
 func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	logger.Info("Initializing server", "auth_enabled", cfg.AuthEnabled)
 	srv := &Server{
-		store: store,
-		cfg:   cfg,
+		store:         store,
+		cfg:           cfg,
+		refreshTokens: make(map[string]string),
 	}
 
 	if cfg.AuthEnabled {

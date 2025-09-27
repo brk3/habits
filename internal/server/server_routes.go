@@ -20,7 +20,7 @@ func writeJSON(w http.ResponseWriter, code int, v any) error {
 
 func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 	habitID := chi.URLParam(r, "habit_id")
-	userID := getUserID(s.cfg.AuthEnabled, r)
+	userID := userIDFromContext(s.cfg.AuthEnabled, r)
 	logger.Debug("Getting habit summary", "habit_id", habitID, "user_id", userID)
 	if userID == "" || habitID == "" {
 		logger.Warn("Missing required parameters", "user_id", userID, "habit_id", habitID)
@@ -91,7 +91,7 @@ func (s *Server) getVersionInfo(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) listHabits(w http.ResponseWriter, r *http.Request) {
-	userID := getUserID(s.cfg.AuthEnabled, r)
+	userID := userIDFromContext(s.cfg.AuthEnabled, r)
 	logger.Debug("Listing habits", "user_id", userID)
 	if userID == "" {
 		logger.Warn("Missing user ID for list habits")
@@ -112,7 +112,7 @@ func (s *Server) listHabits(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
-	userID := getUserID(s.cfg.AuthEnabled, r)
+	userID := userIDFromContext(s.cfg.AuthEnabled, r)
 	logger.Debug("Tracking habit", "user_id", userID)
 	if userID == "" {
 		logger.Warn("Missing user ID for track habit")
@@ -148,7 +148,7 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 	habitID := chi.URLParam(r, "habit_id")
-	userID := getUserID(s.cfg.AuthEnabled, r)
+	userID := userIDFromContext(s.cfg.AuthEnabled, r)
 	if userID == "" || habitID == "" {
 		http.Error(w, `{"error":"user id and habit id are required"}`, http.StatusBadRequest)
 		return
@@ -176,7 +176,7 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
 	habitID := chi.URLParam(r, "habit_id")
-	userID := getUserID(s.cfg.AuthEnabled, r)
+	userID := userIDFromContext(s.cfg.AuthEnabled, r)
 	logger.Info("Deleting habit", "user_id", userID, "habit_id", habitID)
 	if userID == "" || habitID == "" {
 		logger.Warn("Missing required parameters for delete", "user_id", userID, "habit_id", habitID)

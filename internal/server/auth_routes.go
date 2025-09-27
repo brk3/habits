@@ -94,9 +94,24 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no id_token", http.StatusBadGateway)
 		return
 	}
-	if _, err := s.authConf[id].idVerifier.Verify(r.Context(), rawIDToken); err != nil {
+	idToken, err := s.authConf[id].idVerifier.Verify(r.Context(), rawIDToken)
+	if err != nil {
 		http.Error(w, "id_token invalid", http.StatusUnauthorized)
 		return
+	}
+
+	// Store refresh token if available
+	if refreshToken := tok.RefreshToken; refreshToken != "" {
+		var claims map[string]any
+		_ = idToken.Claims(&claims)
+
+		userID := userIDFromClaims(claims)
+		if userID != "" {
+			s.refreshMutex.Lock()
+			s.refreshTokens[userID] = refreshToken
+			s.refreshMutex.Unlock()
+			logger.Debug("Stored refresh token for user", "userID", userID)
+		}
 	}
 
 	// Create provider-prefixed token for API use

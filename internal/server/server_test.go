@@ -341,7 +341,7 @@ func TestDeleteHabit(t *testing.T) {
 }
 
 func TestUserIdIsAnonymousWhenAuthDisabled(t *testing.T) {
-	if getUserID(false, nil) != "anonymous" {
+	if userIDFromContext(false, nil) != "anonymous" {
 		t.Fatal("expected anonymous user ID when auth is disabled")
 	}
 }

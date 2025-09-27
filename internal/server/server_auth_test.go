@@ -58,41 +58,43 @@ func TestAuthEnabled_NotLoggedIn_Redirect(t *testing.T) {
 
 func TestGetUserID_WithValidUser(t *testing.T) {
 	// Test with auth enabled and valid user in context
+	claims := map[string]any{
+		"iss": "https://test-issuer.com",
+		"sub": "test-subject",
+	}
 	user := &User{
 		Subject: "test-subject",
 		Email:   "test@example.com",
-		Claims: map[string]any{
-			"iss": "https://test-issuer.com",
-			"sub": "test-subject",
-		},
+		UserID:  userIDFromClaims(claims),
+		Claims:  claims,
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	ctx := context.WithValue(req.Context(), userCtxKey{}, user)
 	req = req.WithContext(ctx)
 
-	userID := getUserID(true, req)
+	userID := userIDFromContext(true, req)
 	if userID == "" {
-		t.Fatal("getUserID returned empty string for valid user")
+		t.Fatal("userIDFromContext returned empty string for valid user")
 	}
 	if !strings.HasPrefix(userID, "user-") {
-		t.Fatalf("getUserID returned %q, expected to start with 'user-'", userID)
+		t.Fatalf("userIDFromContext returned %q, expected to start with 'user-'", userID)
 	}
 }
 
 func TestGetUserID_AuthDisabled(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	userID := getUserID(false, req)
+	userID := userIDFromContext(false, req)
 	if userID != "anonymous" {
-		t.Fatalf("getUserID returned %q, expected 'anonymous'", userID)
+		t.Fatalf("userIDFromContext returned %q, expected 'anonymous'", userID)
 	}
 }
 
 func TestGetUserID_NoUserInContext(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	userID := getUserID(true, req)
+	userID := userIDFromContext(true, req)
 	if userID != "" {
-		t.Fatalf("getUserID returned %q, expected empty string when no user in context", userID)
+		t.Fatalf("userIDFromContext returned %q, expected empty string when no user in context", userID)
 	}
 }
 

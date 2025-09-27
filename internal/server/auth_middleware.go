@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -21,6 +23,7 @@ type userCtxKey struct{}
 type User struct {
 	Subject string
 	Email   string
+	UserID  string
 	Claims  map[string]any
 }
 
@@ -141,27 +144,38 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 
 		// 3) No valid token → redirect for HTML, 401 for API
 		if rawIDToken == "" || providerID == "" {
-			if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
-				http.Redirect(w, r, "/auth/login", http.StatusFound)
-			} else {
-				w.Header().Set("WWW-Authenticate", `Bearer realm="habits"`)
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-			}
+			s.handleAuthFailure(w, r, false)
 			return
 		}
 
 		// 4) Verify token with the correct provider
 		idTok, err := s.authConf[providerID].idVerifier.Verify(r.Context(), rawIDToken)
 		if err != nil {
-			// Clear session cookie on invalid token
-			http.SetCookie(w, &http.Cookie{Name: "session", Value: "", Path: "/", MaxAge: -1})
-			if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
-				http.Redirect(w, r, "/auth/login", http.StatusFound)
+			// Try to refresh the token before giving up
+			if newIDToken, refreshed := s.tryRefreshToken(r.Context(), providerID, rawIDToken); refreshed {
+				if newIdTok, verifyErr := s.authConf[providerID].idVerifier.Verify(r.Context(), newIDToken); verifyErr == nil {
+					prefixedToken := providerID + ":" + newIDToken
+					val, _ := s.sessionCookie.Encode("session", prefixedToken)
+					http.SetCookie(w, &http.Cookie{
+						Name:     "session",
+						Value:    val,
+						Path:     "/",
+						HttpOnly: true,
+						Secure:   true,
+						SameSite: http.SameSiteLaxMode,
+						MaxAge:   int((3 * 24 * time.Hour).Seconds()),
+					})
+					idTok = newIdTok
+				} else {
+					logger.Debug("New ID token verification failed", "error", verifyErr)
+					s.handleAuthFailure(w, r, true)
+					return
+				}
 			} else {
-				w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				logger.Debug("Token verification failed and refresh unsuccessful", "error", err)
+				s.handleAuthFailure(w, r, true)
+				return
 			}
-			return
 		}
 
 		// 5) Extract claims and create user
@@ -170,6 +184,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		u := &User{
 			Subject: idTok.Subject,
 			Email:   strClaim(claims, "email"),
+			UserID:  userIDFromClaims(claims),
 			Claims:  claims,
 		}
 
@@ -213,7 +228,24 @@ func strClaim(m map[string]any, k string) string {
 	return ""
 }
 
-func getUserID(authEnabled bool, r *http.Request) string {
+// userIDFromClaims generates a consistent user ID from OIDC token claims
+func userIDFromClaims(claims map[string]any) string {
+	iss, ok := claims["iss"].(string)
+	if !ok {
+		return ""
+	}
+	sub, ok := claims["sub"].(string)
+	if !ok {
+		return ""
+	}
+
+	userInfo := iss + "|" + sub
+	hash := sha256.Sum256([]byte(userInfo))
+	return fmt.Sprintf("user-%x", hash[:8])
+}
+
+// userIDFromContext extracts user ID from authenticated request context
+func userIDFromContext(authEnabled bool, r *http.Request) string {
 	if !authEnabled {
 		logger.Debug("Auth disabled, using anonymous userid")
 		return "anonymous"
@@ -225,15 +257,33 @@ func getUserID(authEnabled bool, r *http.Request) string {
 		return ""
 	}
 
-	iss := user.Claims["iss"].(string)
-	sub := user.Claims["sub"].(string)
+	return user.UserID
+}
 
-	userInfo := iss + "|" + sub
-	hash := sha256.Sum256([]byte(userInfo))
-	bucketName := fmt.Sprintf("user-%x", hash[:8])
+// parseTokenClaims extracts claims from a JWT token without verification
+func (s *Server) parseTokenClaims(token string) (map[string]any, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid JWT format")
+	}
 
-	logger.Debug("User bucket mapping", "user", userInfo, "bucket", bucketName)
-	return bucketName
+	// Decode the payload
+	payload := parts[1]
+	if mod := len(payload) % 4; mod != 0 {
+		payload += strings.Repeat("=", 4-mod)
+	}
+
+	decoded, err := base64.URLEncoding.DecodeString(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode JWT payload: %w", err)
+	}
+
+	var claims map[string]any
+	if err := json.Unmarshal(decoded, &claims); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal claims: %w", err)
+	}
+
+	return claims, nil
 }
 
 func (s *StateStore) Put(key string, v authState) {
@@ -253,4 +303,80 @@ func (s *StateStore) GetAndDelete(key string) (authState, bool) {
 		return authState{}, false
 	}
 	return v, ok
+}
+
+// handleAuthFailure centralizes auth failure handling
+func (s *Server) handleAuthFailure(w http.ResponseWriter, r *http.Request, clearCookie bool) {
+	if clearCookie {
+		// Clear session cookie on invalid token
+		http.SetCookie(w, &http.Cookie{Name: "session", Value: "", Path: "/", MaxAge: -1})
+	}
+
+	if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
+		http.Redirect(w, r, "/auth/login", http.StatusFound)
+	} else {
+		if clearCookie {
+			w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+		} else {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="habits"`)
+		}
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	}
+}
+
+// tryRefreshToken attempts to refresh an expired ID token using stored refresh token
+func (s *Server) tryRefreshToken(ctx context.Context, providerID, expiredIDToken string) (string, bool) {
+	// Extract claims from expired token (without verification since it's expired)
+	claims, err := s.parseTokenClaims(expiredIDToken)
+	if err != nil {
+		logger.Debug("Failed to parse token claims", "error", err)
+		return "", false
+	}
+
+	userID := userIDFromClaims(claims)
+	if userID == "" {
+		logger.Debug("Failed to calculate user ID from claims")
+		return "", false
+	}
+
+	// Look up refresh token
+	s.refreshMutex.RLock()
+	refreshToken, exists := s.refreshTokens[userID]
+	s.refreshMutex.RUnlock()
+
+	if !exists {
+		logger.Debug("No refresh token found for user", "userID", userID)
+		return "", false
+	}
+
+	// Attempt to refresh
+	authConfig := s.authConf[providerID]
+	token := &oauth2.Token{RefreshToken: refreshToken}
+	newToken, err := authConfig.oauth2.TokenSource(ctx, token).Token()
+	if err != nil {
+		logger.Debug("Token refresh failed", "error", err)
+		// Remove invalid refresh token
+		s.refreshMutex.Lock()
+		delete(s.refreshTokens, userID)
+		s.refreshMutex.Unlock()
+		return "", false
+	}
+
+	// Extract new ID token
+	newIDToken, ok := newToken.Extra("id_token").(string)
+	if !ok || newIDToken == "" {
+		logger.Debug("No id_token in refreshed token")
+		return "", false
+	}
+
+	// Update stored refresh token if it changed
+	if newToken.RefreshToken != "" && newToken.RefreshToken != refreshToken {
+		s.refreshMutex.Lock()
+		s.refreshTokens[userID] = newToken.RefreshToken
+		s.refreshMutex.Unlock()
+		logger.Debug("Updated refresh token for user", "userID", userID)
+	}
+
+	logger.Debug("Successfully refreshed token for user", "userID", userID)
+	return newIDToken, true
 }
