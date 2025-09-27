@@ -2,6 +2,8 @@ package server
 
 import (
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/logger"
@@ -21,6 +23,7 @@ type Server struct {
 	authConf      map[string]*AuthConfig
 	cfg           *config.Config
 	sessionCookie *securecookie.SecureCookie
+	tokenStore    *TokenStore
 }
 
 type AuthConfig struct {
@@ -34,8 +37,9 @@ type AuthConfig struct {
 func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	logger.Info("Initializing server", "auth_enabled", cfg.AuthEnabled)
 	srv := &Server{
-		store: store,
-		cfg:   cfg,
+		store:      store,
+		cfg:        cfg,
+		tokenStore: NewTokenStore(24 * time.Hour), // 24 hour cleanup interval
 	}
 
 	if cfg.AuthEnabled {
@@ -44,6 +48,7 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 		if err != nil {
 			return nil, err
 		}
+		// TokenStore handles its own cleanup
 	}
 
 	logger.Info("Server initialization complete")
@@ -81,4 +86,66 @@ func (s *Server) Router() http.Handler {
 	})
 
 	return r
+}
+
+type TokenStore struct {
+	ttl time.Duration
+	mu  sync.RWMutex
+	m   map[string]*StoredToken
+}
+
+type StoredToken struct {
+	Token    *oauth2.Token
+	ExpireAt time.Time
+}
+
+func NewTokenStore(ttl time.Duration) *TokenStore {
+	s := &TokenStore{ttl: ttl, m: make(map[string]*StoredToken)}
+	go func() { // janitor - similar to StateStore
+		ticker := time.NewTicker(time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			now := time.Now()
+			s.mu.Lock()
+			for k, v := range s.m {
+				if now.After(v.ExpireAt) {
+					delete(s.m, k)
+					logger.Debug("Cleaned up expired token", "userID", k)
+				}
+			}
+			s.mu.Unlock()
+		}
+	}()
+	return s
+}
+
+func (s *TokenStore) Put(userID string, token *oauth2.Token) {
+	s.mu.Lock()
+	s.m[userID] = &StoredToken{
+		Token:    token,
+		ExpireAt: time.Now().Add(s.ttl),
+	}
+	s.mu.Unlock()
+}
+
+func (s *TokenStore) Get(userID string) (*oauth2.Token, bool) {
+	s.mu.RLock()
+	stored, ok := s.m[userID]
+	s.mu.RUnlock()
+	if !ok {
+		logger.Debug("No token found in store", "userID", userID)
+		return nil, false
+	}
+	if time.Now().After(stored.ExpireAt) {
+		logger.Debug("Token in store has expired", "userID", userID, "expireAt", stored.ExpireAt, "now", time.Now())
+		return nil, false
+	}
+	logger.Debug("Token retrieved from store", "userID", userID, "expireAt", stored.ExpireAt)
+	return stored.Token, true
+}
+
+func (s *TokenStore) Delete(userID string) {
+	s.mu.Lock()
+	delete(s.m, userID)
+	s.mu.Unlock()
 }

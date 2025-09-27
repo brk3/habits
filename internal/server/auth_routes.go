@@ -15,39 +15,34 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// OIDC auth flow
-// Need /login, /logout, and /callback endpoints. They don't have to be called exactly that, but
-// they need to exist for those purposes.
-//
-// This should probably be a library dep but I had fun putting it together.
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	st := randState()
-	verifier, err := genCodeVerifier(48)
-	if err != nil {
+	// Generate PKCE challenge
+	verifier := make([]byte, 48)
+	if _, err := rand.Read(verifier); err != nil {
 		http.Error(w, "pkce gen failed", http.StatusInternalServerError)
 		return
 	}
-	challenge := codeChallengeS256(verifier)
+	verifierStr := base64.RawURLEncoding.EncodeToString(verifier)
+	hash := sha256.Sum256([]byte(verifierStr))
+	challenge := base64.RawURLEncoding.EncodeToString(hash[:])
 
-	// TODO(pbourke): review
-	/// ???
-	// I dont know what this is doing, or rather WHY its doing it.
-	// capture an optional return path (sanitize to keep it relative)
+	// Generate state
+	stateBytes := make([]byte, 16)
+	_, _ = rand.Read(stateBytes)
+	st := hex.EncodeToString(stateBytes)
+
+	// Capture return path (sanitize to keep it relative)
 	ret := r.URL.Query().Get("return")
 	if ret == "" {
 		ret = "/"
-	} else {
-		// keep it relative to avoid open redirects
-		if u, err := url.Parse(ret); err != nil || u.IsAbs() || u.Host != "" {
-			ret = "/"
-		}
+	} else if u, err := url.Parse(ret); err != nil || u.IsAbs() || u.Host != "" {
+		ret = "/"
 	}
-	/// ???
 
 	s.authConf[id].state.Put(st, authState{
-		Verifier: verifier,
+		Verifier: verifierStr,
 		Return:   ret,
 		ExpireAt: time.Now().Add(5 * time.Minute),
 	})
@@ -62,13 +57,12 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	cookieName := "session"
-	st := param(r, "state")
+	st := r.URL.Query().Get("state")
 	if st == "" {
 		http.Error(w, "missing state", http.StatusBadRequest)
 		return
 	}
-	code := param(r, "code")
+	code := r.URL.Query().Get("code")
 	if code == "" {
 		http.Error(w, "missing code", http.StatusBadRequest)
 		return
@@ -94,18 +88,34 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no id_token", http.StatusBadGateway)
 		return
 	}
-	if _, err := s.authConf[id].idVerifier.Verify(r.Context(), rawIDToken); err != nil {
+	idToken, err := s.authConf[id].idVerifier.Verify(r.Context(), rawIDToken)
+	if err != nil {
 		http.Error(w, "id_token invalid", http.StatusUnauthorized)
 		return
 	}
 
-	// Create provider-prefixed token for API use
-	prefixedToken := id + ":" + rawIDToken
+	// Store complete token for future refresh
+	logger.Debug("Processing token storage", "hasRefreshToken", tok.RefreshToken != "", "expiry", tok.Expiry)
+	if tok.RefreshToken != "" {
+		var claims map[string]any
+		_ = idToken.Claims(&claims)
 
-	// Encode prefixed token directly
-	val, _ := s.sessionCookie.Encode(cookieName, prefixedToken)
+		userID := userIDFromClaims(claims)
+		if userID != "" {
+			s.tokenStore.Put(userID, tok)
+			logger.Debug("Stored oauth2 token for user", "userID", userID, "hasRefresh", tok.RefreshToken != "", "expiry", tok.Expiry)
+		} else {
+			logger.Debug("Failed to calculate userID from claims")
+		}
+	} else {
+		logger.Debug("No refresh token in oauth2 token - refresh will not be possible")
+	}
+
+	// Set session cookie
+	prefixedToken := id + ":" + rawIDToken
+	val, _ := s.sessionCookie.Encode("session", prefixedToken)
 	http.SetCookie(w, &http.Cookie{
-		Name:     cookieName,
+		Name:     "session",
 		Value:    val,
 		Path:     "/",
 		HttpOnly: true,
@@ -118,7 +128,6 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
-	// Clear single session cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    "",
@@ -134,34 +143,10 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) simpleLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-	fmt.Fprint(w, `<!DOCTYPE html>
-<html>
-<head>
-<title>OIDC Providers</title>
-<style>
-button {
-    display: block;
-    margin: 10px 0;
-    padding: 10px 20px;
-    font-size: 16px;
-}
-</style>
-</head>
-<body>
-<h1>Available OIDC Providers</h1>
-`)
-
+	fmt.Fprint(w, `<h1>Login</h1><style>button{display:block;margin:10px 0;padding:10px 20px;}</style>`)
 	for id := range s.authConf {
-		fmt.Fprintf(w, `<form action="/auth/login/%s" method="GET">
-            <button type="submit">%s</button>
-        </form>
-`, id, s.authConf[id].name)
+		fmt.Fprintf(w, `<form action="/auth/login/%s"><button>%s</button></form>`, id, s.authConf[id].name)
 	}
-
-	fmt.Fprint(w, `
-</body>
-</html>`)
 }
 
 func (s *Server) getAPIToken(w http.ResponseWriter, r *http.Request) {
@@ -181,35 +166,3 @@ func (s *Server) getAPIToken(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(prefixedToken))
 }
 
-// helpers
-func param(r *http.Request, name string) string {
-	if v := r.URL.Query().Get(name); v != "" {
-		return v
-	}
-	if r.Method == http.MethodPost {
-		_ = r.ParseForm()
-		if v := r.PostFormValue(name); v != "" {
-			return v
-		}
-	}
-	return ""
-}
-
-func codeChallengeS256(verifier string) string {
-	h := sha256.Sum256([]byte(verifier))
-	return base64.RawURLEncoding.EncodeToString(h[:])
-}
-
-func genCodeVerifier(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
-}
-
-func randState() string {
-	b := make([]byte, 16)
-	_, _ = rand.Read(b)
-	return hex.EncodeToString(b)
-}

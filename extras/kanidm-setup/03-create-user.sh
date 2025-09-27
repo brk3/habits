@@ -41,7 +41,7 @@ echo "Creating OAuth2 application..."
 ${kanidm[@]} system oauth2 create habits "Habits Tracker" https://habits.aiectomy.xyz
 
 # Configure OAuth2 scopes
-${kanidm[@]} system oauth2 update-scope-map habits habits_users openid profile
+${kanidm[@]} system oauth2 update-scope-map habits habits_users openid profile offline_access
 
 # Add redirect URL for OAuth callback
 # Update this URL to match your habits app callback

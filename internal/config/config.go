@@ -112,7 +112,7 @@ func (c *Config) applyDefaults() {
 	for i := range c.OIDCProviders {
 		provider := &c.OIDCProviders[i]
 		if provider.Scopes == nil {
-			provider.Scopes = []string{"openid", "profile"}
+			provider.Scopes = []string{"openid", "profile", "offline_access"}
 		}
 	}
 }
