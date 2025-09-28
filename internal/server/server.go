@@ -79,6 +79,7 @@ func (s *Server) Router() http.Handler {
 	r.Route("/habits", func(r chi.Router) {
 		if s.cfg.AuthEnabled {
 			r.Use(s.authMiddleware)
+			r.Use(s.userAwareMetricsMiddleware)
 		}
 		r.Post("/", s.trackHabit)
 		r.Get("/", s.listHabits)

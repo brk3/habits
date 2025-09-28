@@ -149,7 +149,8 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Warn("Failed to update active habits metric after tracking", "user_id", userID, "error", err)
 	} else {
-		activeHabits.Set(float64(len(habits)))
+		UpdateActiveHabitsForUser(userID, len(habits))
+		UpdateTotalActiveHabits(len(habits))
 	}
 
 	if err := writeJSON(w, http.StatusCreated, h); err != nil {
@@ -211,7 +212,8 @@ func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Warn("Failed to update active habits metric after deletion", "user_id", userID, "error", err)
 	} else {
-		activeHabits.Set(float64(len(habits)))
+		UpdateActiveHabitsForUser(userID, len(habits))
+		UpdateTotalActiveHabits(len(habits))
 	}
 
 	w.WriteHeader(http.StatusNoContent)

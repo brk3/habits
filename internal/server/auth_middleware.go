@@ -154,6 +154,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 
 		// 3) No valid token → redirect for HTML, 401 for API
 		if rawIDToken == "" || providerID == "" {
+			RecordAuthEvent("verification", "missing_token", "unknown")
 			s.handleAuthFailure(w, r, false)
 			return
 		}
@@ -163,9 +164,11 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		idTok, err := s.authConf[providerID].idVerifier.Verify(r.Context(), rawIDToken)
 		if err != nil {
 			logger.Debug("ID token verification failed, attempting refresh", "provider", providerID, "error", err)
+			RecordAuthEvent("verification", "failed", providerID)
 			// Try to refresh the token before giving up
 			if newIDToken, refreshed := s.tryRefreshToken(r.Context(), providerID, rawIDToken); refreshed {
 				if newIdTok, verifyErr := s.authConf[providerID].idVerifier.Verify(r.Context(), newIDToken); verifyErr == nil {
+					RecordAuthEvent("refresh", "success", providerID)
 					prefixedToken := providerID + ":" + newIDToken
 					val, err := s.sessionCookie.Encode("session", prefixedToken)
 					if err != nil {
@@ -185,16 +188,19 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 					idTok = newIdTok
 				} else {
 					logger.Debug("New ID token verification failed", "error", verifyErr)
+					RecordAuthEvent("refresh", "verification_failed", providerID)
 					s.handleAuthFailure(w, r, true)
 					return
 				}
 			} else {
 				logger.Debug("Token verification failed and refresh unsuccessful", "error", err)
+				RecordAuthEvent("refresh", "failed", providerID)
 				s.handleAuthFailure(w, r, true)
 				return
 			}
 		} else {
 			logger.Debug("ID token verification succeeded", "provider", providerID, "subject", idTok.Subject, "expiry", idTok.Expiry)
+			RecordAuthEvent("verification", "success", providerID)
 		}
 
 		// 5) Extract claims and create user
