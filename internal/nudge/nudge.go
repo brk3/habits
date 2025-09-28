@@ -16,6 +16,7 @@ func Nudge(cfg *config.Config, n Notifier, nudgeThreshold int) {
 		time.Now().UTC(), time.Duration(nudgeThreshold)*time.Hour)
 	if err != nil {
 		logger.Error("error getting expiring habits", "err", err)
+		return
 	}
 	logger.Info("expiring habits", "habits", strings.Join(expiring, ", "))
 

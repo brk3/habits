@@ -34,7 +34,9 @@ func Open(path string) (*Store, error) {
 		return err
 	}); err != nil {
 		logger.Error("Failed to create root bucket", "bucket", rootBucket, "error", err)
-		_ = db.Close()
+		if closeErr := db.Close(); closeErr != nil {
+			logger.Error("Failed to close database after bucket creation error", "error", closeErr)
+		}
 		return nil, err
 	}
 
@@ -82,8 +84,10 @@ func (s *Store) Close() error {
 	err := s.db.Close()
 	if err != nil {
 		logger.Error("Failed to close BoltDB", "error", err)
+		return fmt.Errorf("failed to close database: %w", err)
 	}
-	return err
+	logger.Debug("BoltDB closed successfully")
+	return nil
 }
 
 func (s *Store) PutHabit(userID string, h habit.Habit) error {
@@ -95,27 +99,31 @@ func (s *Store) PutHabit(userID string, h habit.Habit) error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := s.getUserHabitsBucket(tx, userID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get user habits bucket: %w", err)
 		}
-		val, _ := json.Marshal(h)
+		val, err := json.Marshal(h)
+		if err != nil {
+			return fmt.Errorf("failed to marshal habit %s: %w", h.Name, err)
+		}
 		key := fmt.Appendf(nil, "%s/%s", h.Name, time.Unix(h.TimeStamp, 0).Format(time.RFC3339))
 		err = bucket.Put(key, val)
-		if err == nil {
-			logger.Debug("Habit stored successfully", "key", string(key))
+		if err != nil {
+			return fmt.Errorf("failed to store habit %s: %w", h.Name, err)
 		}
-		return err
+		logger.Debug("Habit stored successfully", "key", string(key))
+		return nil
 	})
 }
 
 func (s *Store) ListHabitNames(userID string) ([]string, error) {
 	if err := s.ensureUserHabitsBucketExists(userID); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to ensure bucket exists for user %s: %w", userID, err)
 	}
 	uniq := map[string]struct{}{}
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		bucket, err := s.getUserHabitsBucket(tx, userID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get user habits bucket for listing: %w", err)
 		}
 		return bucket.ForEach(func(k, _ []byte) error {
 			name := strings.SplitN(string(k), "/", 2)[0]
@@ -124,7 +132,7 @@ func (s *Store) ListHabitNames(userID string) ([]string, error) {
 		})
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list habit names for user %s: %w", userID, err)
 	}
 	out := make([]string, 0, len(uniq))
 	for n := range uniq {
@@ -135,42 +143,45 @@ func (s *Store) ListHabitNames(userID string) ([]string, error) {
 
 func (s *Store) GetHabit(userID, name string) ([]habit.Habit, error) {
 	if err := s.ensureUserHabitsBucketExists(userID); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to ensure bucket exists for user %s: %w", userID, err)
 	}
 	var out []habit.Habit
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		bucket, err := s.getUserHabitsBucket(tx, userID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get user habits bucket for retrieval: %w", err)
 		}
 		c := bucket.Cursor()
 		prefix := []byte(name + "/")
 		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
 			var e habit.Habit
 			if err := json.Unmarshal(v, &e); err != nil {
-				return err
+				return fmt.Errorf("failed to unmarshal habit entry for %s: %w", name, err)
 			}
 			out = append(out, e)
 		}
 		return nil
 	})
-	return out, err
+	if err != nil {
+		return nil, fmt.Errorf("failed to get habit %s for user %s: %w", name, userID, err)
+	}
+	return out, nil
 }
 
 func (s *Store) DeleteHabit(userID, name string) error {
 	if err := s.ensureUserHabitsBucketExists(userID); err != nil {
-		return nil
+		return fmt.Errorf("failed to ensure bucket exists for user %s: %w", userID, err)
 	}
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := s.getUserHabitsBucket(tx, userID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get user habits bucket for deletion: %w", err)
 		}
 		c := bucket.Cursor()
 		prefix := []byte(name + "/")
 		for k, _ := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, _ = c.Next() {
 			if err := c.Delete(); err != nil {
-				return err
+				return fmt.Errorf("failed to delete habit entry %s: %w", string(k), err)
 			}
 		}
 		return nil

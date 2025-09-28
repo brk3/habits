@@ -162,7 +162,12 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			if newIDToken, refreshed := s.tryRefreshToken(r.Context(), providerID, rawIDToken); refreshed {
 				if newIdTok, verifyErr := s.authConf[providerID].idVerifier.Verify(r.Context(), newIDToken); verifyErr == nil {
 					prefixedToken := providerID + ":" + newIDToken
-					val, _ := s.sessionCookie.Encode("session", prefixedToken)
+					val, err := s.sessionCookie.Encode("session", prefixedToken)
+					if err != nil {
+						logger.Error("Failed to encode refreshed session cookie", "error", err)
+						s.handleAuthFailure(w, r, true)
+						return
+					}
 					http.SetCookie(w, &http.Cookie{
 						Name:     "session",
 						Value:    val,
@@ -189,7 +194,11 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 
 		// 5) Extract claims and create user
 		var claims map[string]any
-		_ = idTok.Claims(&claims)
+		if err := idTok.Claims(&claims); err != nil {
+			logger.Error("Failed to extract claims from token", "error", err)
+			s.handleAuthFailure(w, r, true)
+			return
+		}
 		u := &User{
 			Subject: idTok.Subject,
 			Email:   strClaim(claims, "email"),

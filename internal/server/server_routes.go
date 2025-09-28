@@ -30,30 +30,35 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 
 	currentStreak, longestSreak, err := s.computeStreaks(userID, habitID)
 	if err != nil {
+		logger.Error("Failed to compute streaks", "user_id", userID, "habit_id", habitID, "error", err)
 		http.Error(w, `{"error":"error computing streaks"}`, http.StatusInternalServerError)
 		return
 	}
 
 	firstLogged, err := s.getFirstLogged(userID, habitID)
 	if err != nil {
+		logger.Error("Failed to get first logged date", "user_id", userID, "habit_id", habitID, "error", err)
 		http.Error(w, `{"error":"error retrieving first logged date"}`, http.StatusInternalServerError)
 		return
 	}
 
 	totalDaysDone, err := s.computeTotalDaysDone(userID, habitID)
 	if err != nil {
+		logger.Error("Failed to compute total days done", "user_id", userID, "habit_id", habitID, "error", err)
 		http.Error(w, `{"error":"error computing total days done"}`, http.StatusInternalServerError)
 		return
 	}
 
 	daysThisMonth, err := s.computeDaysThisMonth(userID, habitID)
 	if err != nil {
+		logger.Error("Failed to compute days this month", "user_id", userID, "habit_id", habitID, "error", err)
 		http.Error(w, `{"error":"error computing days this month"}`, http.StatusInternalServerError)
 		return
 	}
 
 	bestMonth, err := s.computeBestMonth(userID, habitID)
 	if err != nil {
+		logger.Error("Failed to compute best month", "user_id", userID, "habit_id", habitID, "error", err)
 		http.Error(w, `{"error":"error computing best month"}`, http.StatusInternalServerError)
 		return
 	}
@@ -74,6 +79,7 @@ func (s *Server) getHabitSummary(w http.ResponseWriter, r *http.Request) {
 		HabitSummary: summary,
 	}
 	if err := writeJSON(w, http.StatusOK, summaryResponse); err != nil {
+		logger.Error("Failed to serialize habit summary response", "user_id", userID, "habit_id", habitID, "error", err)
 		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
 		return
 	}
@@ -85,6 +91,7 @@ func (s *Server) getVersionInfo(w http.ResponseWriter, _ *http.Request) {
 		BuildDate: versioninfo.BuildDate,
 	}
 	if err := writeJSON(w, http.StatusOK, info); err != nil {
+		logger.Error("Failed to serialize version info response", "error", err)
 		http.Error(w, `{"error":"failed to serialize version info"}`, http.StatusInternalServerError)
 		return
 	}
@@ -106,6 +113,7 @@ func (s *Server) listHabits(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Debug("Listed habits successfully", "user_id", userID, "count", len(names))
 	if err := writeJSON(w, http.StatusOK, HabitListResponse{Habits: names}); err != nil {
+		logger.Error("Failed to serialize habit list response", "user_id", userID, "error", err)
 		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
 		return
 	}
@@ -137,10 +145,15 @@ func (s *Server) trackHabit(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Info("Habit tracked successfully", "user_id", userID, "habit_name", h.Name)
 
-	habits, _ := s.store.ListHabitNames(userID)
-	activeHabits.Set(float64(len(habits)))
+	habits, err := s.store.ListHabitNames(userID)
+	if err != nil {
+		logger.Warn("Failed to update active habits metric after tracking", "user_id", userID, "error", err)
+	} else {
+		activeHabits.Set(float64(len(habits)))
+	}
 
 	if err := writeJSON(w, http.StatusCreated, h); err != nil {
+		logger.Error("Failed to serialize track habit response", "user_id", userID, "habit_name", h.Name, "error", err)
 		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
 		return
 	}
@@ -156,6 +169,7 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 
 	entries, err := s.store.GetHabit(userID, habitID)
 	if err != nil {
+		logger.Error("Failed to get habit entries", "user_id", userID, "habit_id", habitID, "error", err)
 		http.Error(w, `{"error":"storage error"}`, http.StatusInternalServerError)
 		return
 	}
@@ -169,6 +183,7 @@ func (s *Server) getHabit(w http.ResponseWriter, r *http.Request) {
 		Entries: entries,
 	}
 	if err := writeJSON(w, http.StatusOK, h); err != nil {
+		logger.Error("Failed to serialize get habit response", "user_id", userID, "habit_id", habitID, "error", err)
 		http.Error(w, `{"error":"failed to serialize response"}`, http.StatusInternalServerError)
 		return
 	}
@@ -192,8 +207,12 @@ func (s *Server) deleteHabit(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Info("Habit deleted successfully", "user_id", userID, "habit_id", habitID)
 
-	habits, _ := s.store.ListHabitNames(userID)
-	activeHabits.Set(float64(len(habits)))
+	habits, err := s.store.ListHabitNames(userID)
+	if err != nil {
+		logger.Warn("Failed to update active habits metric after deletion", "user_id", userID, "error", err)
+	} else {
+		activeHabits.Set(float64(len(habits)))
+	}
 
 	w.WriteHeader(http.StatusNoContent)
 }

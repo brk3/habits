@@ -29,7 +29,11 @@ func New(base, authToken string) *APIClient {
 
 func (c *APIClient) ListHabits(ctx context.Context) ([]string, error) {
 	logger.Debug("Listing habits via API", "base_url", c.BaseURL)
-	req, _ := http.NewRequestWithContext(ctx, "GET", c.BaseURL+"/habits", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.BaseURL+"/habits", nil)
+	if err != nil {
+		logger.Error("Failed to create list habits request", "base_url", c.BaseURL, "error", err)
+		return nil, fmt.Errorf("failed to create request for %s/habits: %w", c.BaseURL, err)
+	}
 	req.Header.Add("Authorization", `Bearer `+c.AuthToken)
 	res, err := c.HTTP.Do(req)
 	if err != nil {
@@ -51,7 +55,11 @@ func (c *APIClient) ListHabits(ctx context.Context) ([]string, error) {
 }
 
 func (c *APIClient) GetHabitSummary(ctx context.Context, name string) (*habit.HabitSummary, error) {
-	req, _ := http.NewRequestWithContext(ctx, "GET", c.BaseURL+"/habits/"+name+"/summary", nil)
+	url := c.BaseURL + "/habits/" + name + "/summary"
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request for %s: %w", url, err)
+	}
 	res, err := c.HTTP.Do(req)
 	if err != nil {
 		return nil, err
@@ -69,8 +77,16 @@ func (c *APIClient) GetHabitSummary(ctx context.Context, name string) (*habit.Ha
 
 func (c *APIClient) PutHabit(ctx context.Context, h *habit.Habit) error {
 	logger.Debug("Putting habit via API", "habit_name", h.Name, "base_url", c.BaseURL)
-	habitJson, _ := json.Marshal(h)
-	req, _ := http.NewRequestWithContext(ctx, "POST", c.BaseURL+"/habits", nil)
+	habitJson, err := json.Marshal(h)
+	if err != nil {
+		logger.Error("Failed to marshal habit", "habit_name", h.Name, "error", err)
+		return fmt.Errorf("failed to marshal habit %s: %w", h.Name, err)
+	}
+	req, err := http.NewRequestWithContext(ctx, "POST", c.BaseURL+"/habits", nil)
+	if err != nil {
+		logger.Error("Failed to create put habit request", "base_url", c.BaseURL, "error", err)
+		return fmt.Errorf("failed to create request for %s/habits: %w", c.BaseURL, err)
+	}
 	req.Header.Add("Authorization", `Bearer `+c.AuthToken)
 	req.Header.Add("Content-Type", "application/json")
 	req.Body = io.NopCloser(bytes.NewReader(habitJson))

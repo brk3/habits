@@ -303,6 +303,8 @@ func canOpenFile(p string) error {
 	if err != nil {
 		return err
 	}
-	_ = f.Close()
+	if closeErr := f.Close(); closeErr != nil {
+		logger.Warn("Failed to close file after checking accessibility", "file", p, "error", closeErr)
+	}
 	return nil
 }

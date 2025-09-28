@@ -30,7 +30,10 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 	// Generate state
 	stateBytes := make([]byte, 16)
-	_, _ = rand.Read(stateBytes)
+	if _, err := rand.Read(stateBytes); err != nil {
+		http.Error(w, "state gen failed", http.StatusInternalServerError)
+		return
+	}
 	st := hex.EncodeToString(stateBytes)
 
 	// Capture return path (sanitize to keep it relative)
@@ -83,7 +86,11 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "code exchange failed", http.StatusBadGateway)
 		return
 	}
-	rawIDToken, _ := tok.Extra("id_token").(string)
+	rawIDToken, ok := tok.Extra("id_token").(string)
+	if !ok {
+		http.Error(w, "no id_token in response", http.StatusBadGateway)
+		return
+	}
 	if rawIDToken == "" {
 		http.Error(w, "no id_token", http.StatusBadGateway)
 		return
@@ -98,7 +105,11 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("Processing token storage", "hasRefreshToken", tok.RefreshToken != "", "expiry", tok.Expiry)
 	if tok.RefreshToken != "" {
 		var claims map[string]any
-		_ = idToken.Claims(&claims)
+		if err := idToken.Claims(&claims); err != nil {
+			logger.Error("Failed to extract claims from ID token", "error", err)
+			http.Error(w, "token claims invalid", http.StatusUnauthorized)
+			return
+		}
 
 		userID := userIDFromClaims(claims)
 		if userID != "" {
@@ -113,7 +124,12 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 
 	// Set session cookie
 	prefixedToken := id + ":" + rawIDToken
-	val, _ := s.sessionCookie.Encode("session", prefixedToken)
+	val, err := s.sessionCookie.Encode("session", prefixedToken)
+	if err != nil {
+		logger.Error("Failed to encode session cookie", "error", err)
+		http.Error(w, "session encoding failed", http.StatusInternalServerError)
+		return
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    val,
