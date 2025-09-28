@@ -59,6 +59,8 @@ func (s *Server) Router() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
+	r.Use(middleware.RedirectSlashes)
+	r.Use(middleware.RequestID)
 	r.Use(metricsMiddleware)
 
 	r.Handle("/metrics", promhttp.Handler())
