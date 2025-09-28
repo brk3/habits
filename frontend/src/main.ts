@@ -19,15 +19,15 @@ function drawHabitSummary(habit: string) {
 
       <!-- Top row of 3 cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="current-streak">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30 border border-gray-100/60 dark:border-gray-600/25" data-stat="current-streak">
           <div class="text-lg text-gray-700 dark:text-gray-300">Current Streak</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="longest-streak">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30 border border-gray-100/60 dark:border-gray-600/25" data-stat="longest-streak">
           <div class="text-lg text-gray-700 dark:text-gray-300">Longest Streak</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="month-progress">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30 border border-gray-100/60 dark:border-gray-600/25" data-stat="month-progress">
           <div class="text-lg text-gray-700 dark:text-gray-300">This Month</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
@@ -35,15 +35,15 @@ function drawHabitSummary(habit: string) {
 
       <!-- Second row of 3 cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="total-days">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30 border border-gray-100/60 dark:border-gray-600/25" data-stat="total-days">
           <div class="text-lg text-gray-700 dark:text-gray-300">Total Days Done</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="best-month">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30 border border-gray-100/60 dark:border-gray-600/25" data-stat="best-month">
           <div class="text-lg text-gray-700 dark:text-gray-300">Best Month</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30" data-stat="first-logged">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow dark:shadow-gray-700/30 border border-gray-100/60 dark:border-gray-600/25" data-stat="first-logged">
           <div class="text-lg text-gray-700 dark:text-gray-300">First Logged</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
@@ -92,7 +92,7 @@ async function drawHabitsList() {
         ${createThemeToggle()}
       </div>
       <div class="grid gap-4">
-        <div id="habits-list" class="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-700/30 divide-y dark:divide-gray-700">
+        <div id="habits-list" class="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-700/30 border border-gray-100/60 dark:border-gray-600/25 divide-y dark:divide-gray-700">
         </div>
       </div>
     </div>
