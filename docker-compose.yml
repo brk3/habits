@@ -21,7 +21,7 @@ services:
       # chown -R 65532:65532 ~/habits_db/
       # chmod 775 ~/habits_db/
       - ~/habits_db:/data
-      - ./config.yaml:/config.yaml:ro
+      - ~/config.yaml:/config.yaml:ro
 
   habits-frontend:
     image: ghcr.io/brk3/habits-frontend:latest
