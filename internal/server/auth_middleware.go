@@ -60,9 +60,10 @@ func ConfigureOIDCProviders(cfg *config.Config) (map[string]*AuthConfig, *secure
 	logger.Info("Configuring OIDC providers", "count", len(cfg.OIDCProviders))
 	authConf := make(map[string]*AuthConfig)
 
-	sessionHashKey := securecookie.GenerateRandomKey(32)
-	sessionBlockKey := securecookie.GenerateRandomKey(32)
-	sessionCookie := securecookie.New(sessionHashKey, sessionBlockKey)
+	// Use static keys so cookies survive server restarts
+	hashKey := []byte("habits-session-hash-key-32-char")
+	blockKey := []byte("habits-session-block-key-32-ch")
+	sessionCookie := securecookie.New(hashKey, blockKey)
 	sessionCookie.MaxAge(259200) // 3 days
 
 	for i := range cfg.OIDCProviders {
@@ -211,10 +212,6 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// middleware helpers
-func acceptsHTML(accept string) bool {
-	return strings.Contains(accept, "text/html") || accept == ""
-}
 
 // parseProviderToken parses a provider-prefixed token of the format "provider:jwt"
 // Returns the provider ID and JWT token, or empty strings and error if invalid format
@@ -324,7 +321,8 @@ func (s *Server) handleAuthFailure(w http.ResponseWriter, r *http.Request, clear
 		http.SetCookie(w, &http.Cookie{Name: "session", Value: "", Path: "/", MaxAge: -1})
 	}
 
-	if r.Method == http.MethodGet && acceptsHTML(r.Header.Get("Accept")) {
+	accept := r.Header.Get("Accept")
+	if r.Method == http.MethodGet && (strings.Contains(accept, "text/html") || accept == "") {
 		logger.Debug("Redirecting to login page")
 		http.Redirect(w, r, "/auth/login", http.StatusFound)
 	} else {
