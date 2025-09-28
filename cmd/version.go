@@ -19,21 +19,20 @@ and server if available.`,
 }
 
 func version(cmd *cobra.Command) {
+	cmd.Printf("Client Version: %s\n", versioninfo.Version)
+
 	resp, err := http.Get(cfg.APIBaseURL + "/version")
 	if err != nil {
 		cmd.Println("Error fetching server version:", err)
 		return
 	}
 	defer resp.Body.Close()
-
 	serverVersion := &versioninfo.VersionInfo{}
 	if err := json.NewDecoder(resp.Body).Decode(serverVersion); err != nil {
 		cmd.Println("Error decoding version response:", err)
 		return
 	}
-
 	cmd.Printf("Server Version: %s\n", serverVersion.Version)
-	cmd.Printf("Client Version: %s\n", versioninfo.Version)
 }
 
 func init() {
