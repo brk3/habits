@@ -60,10 +60,14 @@ func ConfigureOIDCProviders(cfg *config.Config) (map[string]*AuthConfig, *secure
 	logger.Info("Configuring OIDC providers", "count", len(cfg.OIDCProviders))
 	authConf := make(map[string]*AuthConfig)
 
-	// Use static keys so cookies survive server restarts
-	hashKey := []byte("habits-session-hash-key-32-char")
-	blockKey := []byte("habits-session-block-key-32-ch")
-	sessionCookie := securecookie.New(hashKey, blockKey)
+	// Generate deterministic keys for consistency across restarts
+	var hashKey [64]byte
+	var blockKey [32]byte
+	h1, h2, b := sha256.Sum256([]byte("habits-hash-1")), sha256.Sum256([]byte("habits-hash-2")), sha256.Sum256([]byte("habits-block"))
+	copy(hashKey[:32], h1[:])
+	copy(hashKey[32:], h2[:])
+	copy(blockKey[:], b[:])
+	sessionCookie := securecookie.New(hashKey[:], blockKey[:])
 	sessionCookie.MaxAge(259200) // 3 days
 
 	for i := range cfg.OIDCProviders {
@@ -211,7 +215,6 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userCtxKey{}, u)))
 	})
 }
-
 
 // parseProviderToken parses a provider-prefixed token of the format "provider:jwt"
 // Returns the provider ID and JWT token, or empty strings and error if invalid format
