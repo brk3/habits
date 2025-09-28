@@ -1,17 +1,34 @@
 @import "tailwindcss";
 
-/* Fixes calheatmap month labels in dark mode */
-@media (prefers-color-scheme: dark) {
-  .ch-domain-text {
-    fill: #ffffff !important;
-    color: #ffffff !important;
-  }
+@theme {
+  --color-*: initial;
 }
 
-@media (prefers-color-scheme: light) {
-  .ch-domain-text {
-    fill: #374151 !important;
-    color: #374151 !important;
-  }
+@variant dark (.dark &);
+
+/* Dark mode global text colors */
+.dark * {
+  color: #f9fafb !important;
 }
-/* Fixes calheatmap day labels in dark mode */
+
+.dark body {
+  color: #f9fafb !important;
+  background-color: #1f2937 !important;
+}
+
+.dark h1,
+.dark .text-3xl,
+.dark .font-bold {
+  color: #ffffff !important;
+}
+
+/* Calendar heatmap text colors */
+.ch-domain-text {
+  fill: #374151 !important;
+  color: #374151 !important;
+}
+
+.dark .ch-domain-text {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+}

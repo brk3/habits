@@ -5,15 +5,141 @@ import CalHeatmap from 'cal-heatmap';
 import Tooltip from 'cal-heatmap/plugins/Tooltip';
 import 'cal-heatmap/cal-heatmap.css';
 
-// Set the body background to adapt to dark mode
+// Theme management
+function getStoredTheme(): string {
+  return localStorage.getItem('theme') || 'auto';
+}
+
+function setStoredTheme(theme: string) {
+  localStorage.setItem('theme', theme);
+}
+
+function applyTheme(theme: string) {
+  const html = document.documentElement;
+
+  // Always remove dark class first to ensure clean state
+  html.classList.remove('dark');
+
+  if (theme === 'dark') {
+    html.classList.add('dark');
+  } else if (theme === 'light') {
+    // Light mode uses default (no dark class)
+  } else {
+    // Auto mode - follow system preference
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      html.classList.add('dark');
+    }
+  }
+}
+
+function getCurrentTheme(): string {
+  return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+}
+
 function initializeBodyStyles() {
   document.body.className = 'bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200';
+}
+
+function createThemeToggle(): string {
+  const currentTheme = getStoredTheme();
+  const icons = {
+    light: '☀️',
+    dark: '🌙',
+    auto: '💻'
+  };
+
+  return `
+    <div class="relative">
+      <button id="theme-toggle"
+              class="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 text-gray-700 dark:text-gray-300">
+        <span id="theme-icon" class="text-lg">${icons[currentTheme as keyof typeof icons]}</span>
+        <span id="theme-text" class="text-sm capitalize text-gray-700 dark:text-gray-300 hidden">${currentTheme}</span>
+        <svg id="theme-chevron" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div id="theme-menu" class="hidden absolute right-0 mt-2 w-32 bg-white/95 dark:bg-gray-800/95 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl backdrop-blur-md z-50">
+        <button data-theme="light" class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-t-lg text-gray-700 dark:text-gray-300 flex items-center gap-2">
+          ☀️ Light
+        </button>
+        <button data-theme="dark" class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center gap-2">
+          🌙 Dark
+        </button>
+        <button data-theme="auto" class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-b-lg text-gray-700 dark:text-gray-300 flex items-center gap-2">
+          💻 Auto
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function setupThemeToggle() {
+  const toggle = document.getElementById('theme-toggle');
+  const menu = document.getElementById('theme-menu');
+  const icon = document.getElementById('theme-icon');
+  const text = document.getElementById('theme-text');
+  const chevron = document.getElementById('theme-chevron');
+
+  if (!toggle || !menu || !icon || !text || !chevron) return;
+
+  const icons = { light: '☀️', dark: '🌙', auto: '💻' };
+
+  // Toggle menu visibility
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = menu.classList.contains('hidden');
+
+    if (isHidden) {
+      // Opening menu - show text and rotate chevron
+      menu.classList.remove('hidden');
+      text.classList.remove('hidden');
+      chevron.style.transform = 'rotate(180deg)';
+    } else {
+      // Closing menu - hide text and reset chevron
+      menu.classList.add('hidden');
+      text.classList.add('hidden');
+      chevron.style.transform = 'rotate(0deg)';
+    }
+  });
+
+  // Close menu when clicking outside
+  document.addEventListener('click', () => {
+    menu.classList.add('hidden');
+    text.classList.add('hidden');
+    chevron.style.transform = 'rotate(0deg)';
+  });
+
+  // Handle theme selection
+  menu.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const button = target.closest('[data-theme]') as HTMLElement;
+    if (!button) return;
+
+    const theme = button.dataset.theme!;
+    setStoredTheme(theme);
+    applyTheme(theme);
+
+    icon.textContent = icons[theme as keyof typeof icons];
+    text.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+    menu.classList.add('hidden');
+    text.classList.add('hidden');
+    chevron.style.transform = 'rotate(0deg)';
+
+    // Refresh heatmap if on habit page
+    const habit = getHabitFromURL();
+    if (habit) {
+      drawHabitHeatmap(habit);
+    }
+  });
 }
 
 function drawHabitSummary(habit: string) {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="max-w-5xl mx-auto p-6">
-      <div id="title" class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">${toTitleCase(habit)}</div>
+      <div class="flex justify-between items-center mb-6">
+        <div id="title" class="text-3xl font-bold text-gray-900 dark:text-white">${toTitleCase(habit)}</div>
+        ${createThemeToggle()}
+      </div>
 
       <!-- Top row of 3 cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
@@ -53,6 +179,7 @@ function drawHabitSummary(habit: string) {
 
   drawSummaryStats(habit);
   drawHabitHeatmap(habit);
+  setupThemeToggle();
 }
 
 type HeatmapDatum = {
@@ -62,9 +189,7 @@ type HeatmapDatum = {
 };
 
 async function fetchHabit(habit: string): Promise<HeatmapDatum[]> {
-  console.log(`Fetching data for habit: ${habit}`);
   const res = await fetch(`/api/habits/${habit}`, { credentials: 'include' });
-  console.log("Response status:", res);
   const json = await res.json();
 
   const counts: Record<number, number> = {};
@@ -83,7 +208,6 @@ async function fetchHabit(habit: string): Promise<HeatmapDatum[]> {
 }
 
 async function fetchHabitSummary(habit: string): Promise<any> {
-  console.log(`Fetching summary for habit: ${habit}`);
   const res = await fetch(`/api/habits/${habit}/summary`, { credentials: 'include' });
   if (!res.ok) {
     throw new Error(`Failed to fetch summary for habit ${habit}: ${res.statusText}`);
@@ -110,8 +234,13 @@ async function fetchVersionInfo(): Promise<{ Version: string; BuildDate: string 
 
 async function drawHabitHeatmap(habit: string) {
   const data = await fetchHabit(habit);
-  console.log("Data for heatmap:", data);
-  const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  const darkMode = getCurrentTheme() === 'dark';
+
+  // Clear existing heatmap before redrawing
+  const heatmapContainer = document.querySelector('#cal-heatmap');
+  if (heatmapContainer) {
+    heatmapContainer.innerHTML = '';
+  }
 
   const cal = new CalHeatmap();
   cal.paint(
@@ -172,7 +301,6 @@ function toTitleCase(str: string): string {
 
 function getHabitFromURL(): string | null {
   const parts = window.location.pathname.split('/');
-  console.log("URL parts:", parts);
   if (parts.length >= 3 && parts[1] === "habits") {
     return parts[2];
   }
@@ -181,7 +309,6 @@ function getHabitFromURL(): string | null {
 
 async function drawSummaryStats(id: string) {
   const data = await fetchHabitSummary(id);
-  console.log("Summary data:", data);
 
   const updateStat = (stat: string, value: string | number) => {
     const container = document.querySelector(`[data-stat="${stat}"]`);
@@ -221,7 +348,10 @@ function intToMonth(month: number): string {
 async function drawHabitsList() {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="max-w-5xl mx-auto p-6">
-      <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">My Habits</h1>
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">My Habits</h1>
+        ${createThemeToggle()}
+      </div>
       <div class="grid gap-4">
         <div id="habits-list" class="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-700/30 divide-y dark:divide-gray-700">
         </div>
@@ -260,7 +390,7 @@ async function drawHabitsList() {
               ${toTitleCase(name)}
               ${summary.habit_summary.current_streak > 1 ? '🔥' : ''}
             </span>
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </div>
@@ -276,6 +406,8 @@ async function drawHabitsList() {
       </div>
     `;
   }
+
+  setupThemeToggle();
 }
 
 async function drawHabitFooter() {
@@ -296,6 +428,9 @@ async function drawHabitFooter() {
 }
 
 async function main() {
+  // Initialize theme before anything else
+  const storedTheme = getStoredTheme();
+  applyTheme(storedTheme);
   initializeBodyStyles();
 
   const habit = getHabitFromURL();
