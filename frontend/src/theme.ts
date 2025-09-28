@@ -40,7 +40,7 @@ function createThemeToggle(): string {
   return `
     <div class="relative">
       <button id="theme-toggle"
-              class="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 text-gray-700 dark:text-gray-300">
+              class="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 text-gray-700 dark:text-gray-300">
         <span id="theme-icon" class="text-lg">${icons[currentTheme as keyof typeof icons]}</span>
         <span id="theme-text" class="text-sm capitalize text-gray-700 dark:text-gray-300 hidden">${currentTheme}</span>
         <svg id="theme-chevron" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
