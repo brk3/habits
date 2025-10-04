@@ -61,6 +61,18 @@ func (s *Store) ensureUserHabitsBucketExists(userID string) error {
 	})
 }
 
+func (s *Store) ensureAPIKeyBucketExists() error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		apiKeysBucket := tx.Bucket([]byte(rootBucket))
+		if apiKeysBucket == nil {
+			return fmt.Errorf("root bucket does not exist")
+		}
+
+		apiKeysBucket, err := apiKeysBucket.CreateBucketIfNotExists([]byte("api_keys"))
+		return err
+	})
+}
+
 func (s *Store) getUserHabitsBucket(tx *bbolt.Tx, userID string) (*bbolt.Bucket, error) {
 	usersBucket := tx.Bucket([]byte(rootBucket))
 	if usersBucket == nil {
@@ -188,12 +200,91 @@ func (s *Store) DeleteHabit(userID, name string) error {
 	})
 }
 
-func (s *Store) GetAPIKey(key string) (string, error) {
-	return "", nil // TODO
+func (s *Store) PutAPIKey(keyHash, userID string) error {
+	if err := s.ensureAPIKeyBucketExists(); err != nil {
+		return fmt.Errorf("failed to ensure API key bucket exists: %w", err)
+	}
+
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(rootBucket)).Bucket([]byte("api_keys"))
+		if bucket == nil {
+			return fmt.Errorf("api_keys bucket not found")
+		}
+
+		err := bucket.Put([]byte(keyHash), []byte(userID))
+		if err != nil {
+			return fmt.Errorf("failed to store API key: %w", err)
+		}
+
+		hashPreview := keyHash
+		if len(hashPreview) > 8 {
+			hashPreview = hashPreview[:8] + "..."
+		}
+		logger.Debug("API key stored", "keyHash", hashPreview, "userID", userID)
+		return nil
+	})
 }
 
-func (s *Store) PutAPIKey(key, userID string) error {
-	return nil // TODO
+func (s *Store) GetAPIKey(keyHash string) (string, bool, error) {
+	if err := s.ensureAPIKeyBucketExists(); err != nil {
+		return "", false, fmt.Errorf("failed to ensure API key bucket exists: %w", err)
+	}
+
+	var userID string
+	var found bool
+	err := s.db.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(rootBucket)).Bucket([]byte("api_keys"))
+		if bucket == nil {
+			return fmt.Errorf("api_keys bucket not found")
+		}
+
+		userIDBytes := bucket.Get([]byte(keyHash))
+		if userIDBytes != nil {
+			userID = string(userIDBytes)
+			found = true
+		}
+		return nil
+	})
+
+	return userID, found, err
+}
+
+func (s *Store) ListAPIKeyHashes(userID string) ([]string, error) {
+	if err := s.ensureAPIKeyBucketExists(); err != nil {
+		return nil, fmt.Errorf("failed to ensure API key bucket exists: %w", err)
+	}
+
+	var hashes []string
+	err := s.db.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(rootBucket)).Bucket([]byte("api_keys"))
+		if bucket == nil {
+			return fmt.Errorf("api_keys bucket not found")
+		}
+
+		return bucket.ForEach(func(k, v []byte) error {
+			storedUserID := string(v)
+			if storedUserID == userID {
+				hashes = append(hashes, string(k))
+			}
+			return nil
+		})
+	})
+
+	return hashes, err
+}
+
+func (s *Store) DeleteAPIKey(keyHash string) error {
+	if err := s.ensureAPIKeyBucketExists(); err != nil {
+		return fmt.Errorf("failed to ensure API key bucket exists: %w", err)
+	}
+
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(rootBucket)).Bucket([]byte("api_keys"))
+		if bucket == nil {
+			return fmt.Errorf("api_keys bucket not found")
+		}
+		return bucket.Delete([]byte(keyHash))
+	})
 }
 
 var _ storage.Store = (*Store)(nil)

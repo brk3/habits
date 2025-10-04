@@ -25,10 +25,12 @@ type User struct {
 	Claims  map[string]any
 }
 
+/*
 type APIKey struct {
-	Key    string
-	UserID string
+	KeyHash string
+	UserID  string
 }
+*/
 
 type StateStore struct {
 	ttl time.Duration

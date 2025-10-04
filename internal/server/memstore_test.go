@@ -8,19 +8,23 @@ import (
 )
 
 type memStore struct {
-	mu   sync.RWMutex
-	data map[string][]habit.Habit
+	mu      sync.RWMutex
+	habits  map[string][]habit.Habit
+	apiKeys map[string]string
 }
 
 func newMemStore() *memStore {
-	return &memStore{data: map[string][]habit.Habit{}}
+	return &memStore{
+		habits:  map[string][]habit.Habit{},
+		apiKeys: map[string]string{},
+	}
 }
 
 func (m *memStore) PutHabit(userID string, h habit.Habit) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.data[h.Name] = append(m.data[h.Name], h)
+	m.habits[h.Name] = append(m.habits[h.Name], h)
 
 	return nil
 }
@@ -30,7 +34,7 @@ func (m *memStore) ListHabitNames(userID string) ([]string, error) {
 	defer m.mu.RUnlock()
 
 	out := []string{}
-	for habitKey := range m.data {
+	for habitKey := range m.habits {
 		out = append(out, habitKey)
 	}
 
@@ -41,7 +45,7 @@ func (m *memStore) GetHabit(userID, name string) ([]habit.Habit, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	return append([]habit.Habit(nil), m.data[name]...), nil
+	return append([]habit.Habit(nil), m.habits[name]...), nil
 }
 
 func (m *memStore) GetHabitSummary(name string) (habit.HabitSummary, error) {
@@ -58,16 +62,45 @@ func (m *memStore) DeleteHabit(userID, name string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	delete(m.data, name)
+	delete(m.habits, name)
 	return nil
 }
 
-func (m *memStore) PutAPIKey(key, userID string) error {
-	return nil // TODO
+func (m *memStore) PutAPIKey(keyHash, userID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.apiKeys[keyHash] = userID
+	return nil
 }
 
-func (m *memStore) GetAPIKey(key string) (string, error) {
-	return "", nil // TODO
+func (m *memStore) GetAPIKey(keyHash string) (string, bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	userID, found := m.apiKeys[keyHash]
+	return userID, found, nil
+}
+
+func (m *memStore) ListAPIKeyHashes(userID string) ([]string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var hashes []string
+	for hash, storedUserID := range m.apiKeys {
+		if storedUserID == userID {
+			hashes = append(hashes, hash)
+		}
+	}
+	return hashes, nil
+}
+
+func (m *memStore) DeleteAPIKey(keyHash string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	delete(m.apiKeys, keyHash)
+	return nil
 }
 
 func (m *memStore) Close() error {

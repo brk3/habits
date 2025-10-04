@@ -8,8 +8,10 @@ type Store interface {
 	GetHabit(userID, name string) ([]habit.Habit, error)
 	DeleteHabit(userID, name string) error
 
-	GetAPIKey(key string) (string, error)
-	PutAPIKey(key, userID string) error
+	PutAPIKey(keyHash, userID string) error
+	GetAPIKey(keyHash string) (userID string, found bool, err error)
+	ListAPIKeyHashes(userID string) ([]string, error)
+	DeleteAPIKey(keyHash string) error
 
 	Close() error
 }
