@@ -170,21 +170,29 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 				if newIdTok, verifyErr := s.authConf[providerID].idVerifier.Verify(r.Context(), newIDToken); verifyErr == nil {
 					RecordAuthEvent("refresh", "success", providerID)
 					prefixedToken := providerID + ":" + newIDToken
-					val, err := s.sessionCookie.Encode("session", prefixedToken)
-					if err != nil {
-						logger.Error("Failed to encode refreshed session cookie", "error", err)
-						s.handleAuthFailure(w, r, true)
-						return
+
+					// Check if this is a Bearer token request (API client)
+					if strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+						logger.Debug("Setting X-Refreshed-Token header for API client", "provider", providerID)
+						w.Header().Set("X-Refreshed-Token", prefixedToken)
+					} else {
+						// Browser client - update cookie
+						val, err := s.sessionCookie.Encode("session", prefixedToken)
+						if err != nil {
+							logger.Error("Failed to encode refreshed session cookie", "error", err)
+							s.handleAuthFailure(w, r, true)
+							return
+						}
+						http.SetCookie(w, &http.Cookie{
+							Name:     "session",
+							Value:    val,
+							Path:     "/",
+							HttpOnly: true,
+							Secure:   true,
+							SameSite: http.SameSiteLaxMode,
+							MaxAge:   int((3 * 24 * time.Hour).Seconds()),
+						})
 					}
-					http.SetCookie(w, &http.Cookie{
-						Name:     "session",
-						Value:    val,
-						Path:     "/",
-						HttpOnly: true,
-						Secure:   true,
-						SameSite: http.SameSiteLaxMode,
-						MaxAge:   int((3 * 24 * time.Hour).Seconds()),
-					})
 					idTok = newIdTok
 				} else {
 					logger.Debug("New ID token verification failed", "error", verifyErr)
