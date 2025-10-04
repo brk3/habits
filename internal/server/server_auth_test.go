@@ -116,7 +116,7 @@ func newTestServerWithAuth(t *testing.T, st storage.Store) http.Handler {
 
 	cfg := config.Config{
 		AuthEnabled: true,
-		OIDCProviders: []config.OIDCProvider{{
+		OIDCProviders: []config.OIDCProviderConfig{{
 			Id:        "test",
 			IssuerURL: mockOIDC.URL,
 			ClientID:  "test",

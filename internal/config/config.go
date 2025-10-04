@@ -14,7 +14,7 @@ import (
 	"github.com/brk3/habits/internal/logger"
 )
 
-type OIDCProvider struct {
+type OIDCProviderConfig struct {
 	Id                string   `yaml:"id"`
 	Name              string   `yaml:"name"`
 	IssuerURL         string   `yaml:"issuer_url"`
@@ -46,7 +46,7 @@ type Config struct {
 		} `yaml:"tls"`
 	} `yaml:"server"`
 
-	OIDCProviders []OIDCProvider `yaml:"oidc_providers"`
+	OIDCProviders []OIDCProviderConfig `yaml:"oidc_providers"`
 
 	Nudge struct {
 		NotifyEmail    string `yaml:"notify_email"`

@@ -56,9 +56,9 @@ func NewStateStore(ttl time.Duration) *StateStore {
 	return s
 }
 
-func ConfigureOIDCProviders(cfg *config.Config) (map[string]*AuthConfig, *securecookie.SecureCookie, error) {
+func ConfigureOIDCProviders(cfg *config.Config) (map[string]*AuthProvider, *securecookie.SecureCookie, error) {
 	logger.Info("Configuring OIDC providers", "count", len(cfg.OIDCProviders))
-	authConf := make(map[string]*AuthConfig)
+	providers := make(map[string]*AuthProvider)
 
 	// Generate deterministic keys for consistency across restarts
 	var hashKey [64]byte
@@ -96,7 +96,7 @@ func ConfigureOIDCProviders(cfg *config.Config) (map[string]*AuthConfig, *secure
 			Scopes:       scopes,
 		}
 
-		authConf[id] = &AuthConfig{
+		providers[id] = &AuthProvider{
 			name:       name,
 			oauth2:     oauth2Cfg,
 			oidcProv:   prov,
@@ -106,7 +106,7 @@ func ConfigureOIDCProviders(cfg *config.Config) (map[string]*AuthConfig, *secure
 		logger.Info("OIDC provider configured successfully", "id", id, "name", name)
 	}
 
-	return authConf, sessionCookie, nil
+	return providers, sessionCookie, nil
 }
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
@@ -140,7 +140,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 				token := strings.TrimPrefix(ah, "Bearer ")
 				// Parse provider-prefixed token: "provider:jwt"
 				if parsedProviderID, parsedToken, err := parseProviderToken(token); err == nil {
-					if _, exists := s.authConf[parsedProviderID]; exists {
+					if _, exists := s.authProviders[parsedProviderID]; exists {
 						providerID = parsedProviderID
 						rawIDToken = parsedToken
 					} else {
@@ -161,13 +161,13 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 
 		// 4) Verify token with the correct provider
 		logger.Debug("Attempting to verify ID token", "provider", providerID)
-		idTok, err := s.authConf[providerID].idVerifier.Verify(r.Context(), rawIDToken)
+		idTok, err := s.authProviders[providerID].idVerifier.Verify(r.Context(), rawIDToken)
 		if err != nil {
 			logger.Debug("ID token verification failed, attempting refresh", "provider", providerID, "error", err)
 			RecordAuthEvent("verification", "failed", providerID)
 			// Try to refresh the token before giving up
 			if newIDToken, refreshed := s.tryRefreshToken(r.Context(), providerID, rawIDToken); refreshed {
-				if newIdTok, verifyErr := s.authConf[providerID].idVerifier.Verify(r.Context(), newIDToken); verifyErr == nil {
+				if newIdTok, verifyErr := s.authProviders[providerID].idVerifier.Verify(r.Context(), newIDToken); verifyErr == nil {
 					RecordAuthEvent("refresh", "success", providerID)
 					prefixedToken := providerID + ":" + newIDToken
 
@@ -293,10 +293,10 @@ func userIDFromContext(authEnabled bool, r *http.Request) string {
 }
 
 func (s *Server) parseTokenClaims(providerID, token string) (map[string]any, error) {
-	authConfig := s.authConf[providerID]
+	provider := s.authProviders[providerID]
 
-	verifier := authConfig.oidcProv.Verifier(&oidc.Config{
-		ClientID:        authConfig.oauth2.ClientID,
+	verifier := provider.oidcProv.Verifier(&oidc.Config{
+		ClientID:        provider.oauth2.ClientID,
 		SkipExpiryCheck: true,
 	})
 
@@ -379,8 +379,8 @@ func (s *Server) tryRefreshToken(ctx context.Context, providerID, expiredIDToken
 	logger.Debug("Found stored token", "userID", userID, "hasRefreshToken", storedToken.RefreshToken != "", "expiry", storedToken.Expiry)
 
 	// Let oauth2.TokenSource handle refresh
-	authConfig := s.authConf[providerID]
-	tokenSource := authConfig.oauth2.TokenSource(ctx, storedToken)
+	provider := s.authProviders[providerID]
+	tokenSource := provider.oauth2.TokenSource(ctx, storedToken)
 
 	freshToken, err := tokenSource.Token()
 	if err != nil {

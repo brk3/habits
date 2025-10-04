@@ -20,13 +20,13 @@ import (
 
 type Server struct {
 	store         storage.Store
-	authConf      map[string]*AuthConfig
+	authProviders map[string]*AuthProvider
 	cfg           *config.Config
 	sessionCookie *securecookie.SecureCookie
 	tokenStore    *TokenStore
 }
 
-type AuthConfig struct {
+type AuthProvider struct {
 	name       string
 	oauth2     *oauth2.Config
 	oidcProv   *oidc.Provider
@@ -39,12 +39,12 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	srv := &Server{
 		store:      store,
 		cfg:        cfg,
-		tokenStore: NewTokenStore(90 * 24 * time.Hour), // 90 hour cleanup interval
+		tokenStore: NewTokenStore(90 * 24 * time.Hour), // 90 day cleanup interval
 	}
 
 	if cfg.AuthEnabled {
 		var err error
-		srv.authConf, srv.sessionCookie, err = ConfigureOIDCProviders(cfg)
+		srv.authProviders, srv.sessionCookie, err = ConfigureOIDCProviders(cfg)
 		if err != nil {
 			return nil, err
 		}

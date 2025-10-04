@@ -44,13 +44,13 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		ret = "/"
 	}
 
-	s.authConf[id].state.Put(st, authState{
+	s.authProviders[id].state.Put(st, authState{
 		Verifier: verifierStr,
 		Return:   ret,
 		ExpireAt: time.Now().Add(5 * time.Minute),
 	})
 
-	authURL := s.authConf[id].oauth2.AuthCodeURL(
+	authURL := s.authProviders[id].oauth2.AuthCodeURL(
 		st,
 		oauth2.SetAuthURLParam("code_challenge", challenge),
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
@@ -71,13 +71,13 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	saved, ok := s.authConf[id].state.GetAndDelete(st)
+	saved, ok := s.authProviders[id].state.GetAndDelete(st)
 	if !ok || saved.Verifier == "" {
 		http.Error(w, "invalid or expired state", http.StatusBadRequest)
 		return
 	}
 
-	tok, err := s.authConf[id].oauth2.Exchange(
+	tok, err := s.authProviders[id].oauth2.Exchange(
 		r.Context(),
 		code,
 		oauth2.SetAuthURLParam("code_verifier", saved.Verifier),
@@ -95,7 +95,7 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no id_token", http.StatusBadGateway)
 		return
 	}
-	idToken, err := s.authConf[id].idVerifier.Verify(r.Context(), rawIDToken)
+	idToken, err := s.authProviders[id].idVerifier.Verify(r.Context(), rawIDToken)
 	if err != nil {
 		http.Error(w, "id_token invalid", http.StatusUnauthorized)
 		return
@@ -160,8 +160,8 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 func (s *Server) simpleLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprint(w, `<h1>Login</h1><style>button{display:block;margin:10px 0;padding:10px 20px;}</style>`)
-	for id := range s.authConf {
-		fmt.Fprintf(w, `<form action="/auth/login/%s"><button>%s</button></form>`, id, s.authConf[id].name)
+	for id := range s.authProviders {
+		fmt.Fprintf(w, `<form action="/auth/login/%s"><button>%s</button></form>`, id, s.authProviders[id].name)
 	}
 }
 
