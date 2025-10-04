@@ -188,4 +188,12 @@ func (s *Store) DeleteHabit(userID, name string) error {
 	})
 }
 
+func (s *Store) GetAPIKey(key string) (string, error) {
+	return "", nil // TODO
+}
+
+func (s *Store) PutAPIKey(key, userID string) error {
+	return nil // TODO
+}
+
 var _ storage.Store = (*Store)(nil)

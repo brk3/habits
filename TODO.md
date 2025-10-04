@@ -1,12 +1,13 @@
 # TODO
-- [ ] Basic auth
-- [ ] Add TLS for frontend
-- [ ] Better logging
+- [ ] Test auth with google oidc
 - [ ] Improve summary page
 - [ ] Add frontend package to release build
 - [ ] Motivation messages in API
 - [ ] Expand on metrics, add prom queries
 - [ ] Nicer output from cli
+- [X] Basic auth
+- [X] Add TLS for frontend
+- [X] Better logging
 - [X] Simple username based segregation
 - [X] Fix release notes in release build
 - [X] Cut a minor release on next main feature addition

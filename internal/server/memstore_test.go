@@ -62,6 +62,14 @@ func (m *memStore) DeleteHabit(userID, name string) error {
 	return nil
 }
 
+func (m *memStore) PutAPIKey(key, userID string) error {
+	return nil // TODO
+}
+
+func (m *memStore) GetAPIKey(key string) (string, error) {
+	return "", nil // TODO
+}
+
 func (m *memStore) Close() error {
 	return nil
 }
