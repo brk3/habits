@@ -39,7 +39,7 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	srv := &Server{
 		store:      store,
 		cfg:        cfg,
-		tokenStore: NewTokenStore(24 * time.Hour), // 24 hour cleanup interval
+		tokenStore: NewTokenStore(90 * 24 * time.Hour), // 90 hour cleanup interval
 	}
 
 	if cfg.AuthEnabled {
@@ -48,7 +48,6 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 		if err != nil {
 			return nil, err
 		}
-		// TokenStore handles its own cleanup
 	}
 
 	logger.Info("Server initialization complete")
