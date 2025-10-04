@@ -36,4 +36,5 @@ go.work.sum
 .DS_Store
 .vscode/
 bin/
+dist/
 certs/
