@@ -47,7 +47,7 @@ func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	srv := &Server{
 		store:      store,
 		cfg:        cfg,
-		tokenStore: NewTokenStore(90*24*time.Hour, store), // 90 day cleanup interval
+		tokenStore: NewTokenStore(24*time.Hour, store), // 24 hour cleanup - aligns with typical OIDC refresh token lifetimes
 	}
 
 	if cfg.AuthEnabled {

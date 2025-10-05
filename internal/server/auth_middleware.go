@@ -16,7 +16,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const sessionMaxAge = 21 * 24 * time.Hour // 3 weeks
+const sessionMaxAge = 24 * time.Hour // 24 hours - aligns with typical OIDC refresh token lifetimes
 
 type userCtxKey struct{}
 
@@ -196,28 +196,22 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 					RecordAuthEvent("refresh", "success", providerID)
 					prefixedToken := providerID + ":" + newIDToken
 
-					// Check if this is a Bearer token request (API client)
-					if strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
-						logger.Debug("Setting X-Refreshed-Token header for API client", "provider", providerID)
-						w.Header().Set("X-Refreshed-Token", prefixedToken)
-					} else {
-						// Browser client - update cookie
-						val, err := s.sessionCookie.Encode("session", prefixedToken)
-						if err != nil {
-							logger.Error("Failed to encode refreshed session cookie", "error", err)
-							s.handleAuthFailure(w, r, true)
-							return
-						}
-						http.SetCookie(w, &http.Cookie{
-							Name:     "session",
-							Value:    val,
-							Path:     "/",
-							HttpOnly: true,
-							Secure:   true,
-							SameSite: http.SameSiteLaxMode,
-							MaxAge:   int(sessionMaxAge.Seconds()),
-						})
+					// Update cookie with refreshed token
+					val, err := s.sessionCookie.Encode("session", prefixedToken)
+					if err != nil {
+						logger.Error("Failed to encode refreshed session cookie", "error", err)
+						s.handleAuthFailure(w, r, true)
+						return
 					}
+					http.SetCookie(w, &http.Cookie{
+						Name:     "session",
+						Value:    val,
+						Path:     "/",
+						HttpOnly: true,
+						Secure:   true,
+						SameSite: http.SameSiteLaxMode,
+						MaxAge:   int(sessionMaxAge.Seconds()),
+					})
 					idTok = newIdTok
 				} else {
 					logger.Debug("New ID token verification failed", "error", verifyErr)
