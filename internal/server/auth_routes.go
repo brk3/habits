@@ -166,6 +166,7 @@ func (s *Server) simpleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// TODO(pbourke): this is no longer applicable with pat style api keys - review
 func (s *Server) getAPIToken(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
 	if err != nil {
@@ -203,8 +204,7 @@ func (s *Server) generateAPIKey(w http.ResponseWriter, r *http.Request) {
 	plainKey := "hab_live_" + base64.RawURLEncoding.EncodeToString(keyBytes)
 
 	// Hash the key for storage
-	hash := sha256.Sum256([]byte(plainKey))
-	keyHash := fmt.Sprintf("%x", hash)
+	keyHash := hashAPIKey(plainKey)
 
 	// Store the hashed key with the user's ID
 	if err := s.store.PutAPIKey(keyHash, user.UserID); err != nil {
@@ -213,7 +213,7 @@ func (s *Server) generateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Info("Generated new API key", "userID", user.UserID, "keyHash", keyHash[:16]+"...")
+	logger.Info("Generated new API key", "userID", user.UserID, "keyHash", truncateHash(keyHash))
 
 	// Return the plaintext key - this is the only time it will be shown
 	w.Header().Set("Content-Type", "application/json")
@@ -246,7 +246,7 @@ func (s *Server) listAPIKeys(w http.ResponseWriter, r *http.Request) {
 	keys := make([]KeyInfo, len(keyHashes))
 	for i, hash := range keyHashes {
 		keys[i] = KeyInfo{
-			KeyID: hash[:16] + "...", // Truncated hash for display
+			KeyID: truncateHash(hash), // Truncated hash for display
 		}
 	}
 
@@ -290,11 +290,11 @@ func (s *Server) deleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store.DeleteAPIKey(keyHash); err != nil {
-		logger.Error("Failed to delete API key", "error", err, "keyHash", keyHash[:16]+"...")
+		logger.Error("Failed to delete API key", "error", err, "keyHash", truncateHash(keyHash))
 		http.Error(w, "failed to delete key", http.StatusInternalServerError)
 		return
 	}
 
-	logger.Info("Deleted API key", "userID", user.UserID, "keyHash", keyHash[:16]+"...")
+	logger.Info("Deleted API key", "userID", user.UserID, "keyHash", truncateHash(keyHash))
 	w.WriteHeader(http.StatusNoContent)
 }

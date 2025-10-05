@@ -16,7 +16,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const sessionMaxAge = 24 * time.Hour // 24 hours - aligns with typical OIDC refresh token lifetimes
+const (
+	sessionMaxAge = 24 * time.Hour // 24 hours - aligns with typical OIDC refresh token lifetimes
+	apiKeyPrefix  = "hab_"         // Prefix for API keys (currently only hab_live_ generated, hab_test_ reserved for future)
+)
 
 type userCtxKey struct{}
 
@@ -26,13 +29,6 @@ type User struct {
 	UserID  string
 	Claims  map[string]any
 }
-
-/*
-type APIKey struct {
-	KeyHash string
-	UserID  string
-}
-*/
 
 type StateStore struct {
 	ttl time.Duration
@@ -69,14 +65,12 @@ func ConfigureOIDCProviders(cfg *config.Config) (map[string]*AuthProvider, *secu
 	logger.Info("Configuring OIDC providers", "count", len(cfg.OIDCProviders))
 	providers := make(map[string]*AuthProvider)
 
-	// Generate deterministic keys for consistency across restarts
-	var hashKey [64]byte
-	var blockKey [32]byte
-	h1, h2, b := sha256.Sum256([]byte("habits-hash-1")), sha256.Sum256([]byte("habits-hash-2")), sha256.Sum256([]byte("habits-block"))
-	copy(hashKey[:32], h1[:])
-	copy(hashKey[32:], h2[:])
-	copy(blockKey[:], b[:])
-	sessionCookie := securecookie.New(hashKey[:], blockKey[:])
+	hashKey := securecookie.GenerateRandomKey(64)
+	blockKey := securecookie.GenerateRandomKey(32)
+	if hashKey == nil || blockKey == nil {
+		return nil, nil, fmt.Errorf("failed to generate secure cookie keys")
+	}
+	sessionCookie := securecookie.New(hashKey, blockKey)
 	sessionCookie.MaxAge(int(sessionMaxAge.Seconds()))
 
 	for i := range cfg.OIDCProviders {
@@ -147,11 +141,9 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		if rawIDToken == "" {
 			if ah := r.Header.Get("Authorization"); strings.HasPrefix(ah, "Bearer ") {
 				token := strings.TrimPrefix(ah, "Bearer ")
-
-				// Check if this is an API key (hab_live_ or hab_test_ prefix)
-				if strings.HasPrefix(token, "hab_") {
+				if strings.HasPrefix(token, apiKeyPrefix) {
 					logger.Debug("Found API key in Authorization header")
-					if user, authenticated := s.authenticateAPIKey(r.Context(), token); authenticated {
+					if user, authenticated := s.authenticateAPIKey(token); authenticated {
 						logger.Debug("API key authentication successful", "userID", user.UserID)
 						RecordAuthEvent("verification", "success", "apikey")
 						next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userCtxKey{}, user)))
@@ -424,13 +416,10 @@ func (s *Server) tryRefreshToken(ctx context.Context, providerID, expiredIDToken
 }
 
 // authenticateAPIKey validates an API key and returns the associated User
-func (s *Server) authenticateAPIKey(ctx context.Context, apiKey string) (*User, bool) {
-	// Hash the API key to look it up in storage
-	hash := sha256.Sum256([]byte(apiKey))
-	keyHash := fmt.Sprintf("%x", hash)
+func (s *Server) authenticateAPIKey(apiKey string) (*User, bool) {
+	keyHash := hashAPIKey(apiKey)
 
-	logger.Debug("Looking up API key", "keyHash", keyHash[:16]+"...")
-
+	logger.Debug("Looking up API key", "keyHash", truncateHash(keyHash))
 	userID, found, err := s.store.GetAPIKey(keyHash)
 	if err != nil {
 		logger.Error("Failed to lookup API key", "error", err)
@@ -446,7 +435,7 @@ func (s *Server) authenticateAPIKey(ctx context.Context, apiKey string) (*User, 
 	// API keys don't have email or subject from OIDC
 	user := &User{
 		UserID:  userID,
-		Subject: "apikey:" + keyHash[:16], // Include partial hash for logging
+		Subject: "apikey:" + truncateHash(keyHash), // Include partial hash for logging
 		Email:   "",
 		Claims:  map[string]any{"auth_method": "api_key"},
 	}

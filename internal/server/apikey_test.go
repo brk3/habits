@@ -212,7 +212,7 @@ func TestAuthenticateAPIKey_ValidKey(t *testing.T) {
 	}
 
 	// Authenticate
-	user, authenticated := srv.authenticateAPIKey(context.Background(), apiKey)
+	user, authenticated := srv.authenticateAPIKey(apiKey)
 	if !authenticated {
 		t.Fatal("authentication should have succeeded")
 	}
@@ -242,7 +242,7 @@ func TestAuthenticateAPIKey_InvalidKey(t *testing.T) {
 
 	// Try to authenticate with a key that doesn't exist
 	apiKey := "hab_live_doesnotexist"
-	_, authenticated := srv.authenticateAPIKey(context.Background(), apiKey)
+	_, authenticated := srv.authenticateAPIKey(apiKey)
 	if authenticated {
 		t.Fatal("authentication should have failed for non-existent key")
 	}
