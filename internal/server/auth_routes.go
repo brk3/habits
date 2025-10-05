@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -137,7 +138,7 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   int((3 * 24 * time.Hour).Seconds()),
+		MaxAge:   int(sessionMaxAge.Seconds()),
 	})
 
 	http.Redirect(w, r, saved.Return, http.StatusFound)
@@ -180,4 +181,120 @@ func (s *Server) getAPIToken(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte(prefixedToken))
+}
+
+// generateAPIKey creates a new API key for the authenticated user
+func (s *Server) generateAPIKey(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value(userCtxKey{}).(*User)
+	if !ok || user == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Generate random 32-character key
+	keyBytes := make([]byte, 24) // 24 bytes = 32 chars in base64
+	if _, err := rand.Read(keyBytes); err != nil {
+		logger.Error("Failed to generate random bytes for API key", "error", err)
+		http.Error(w, "key generation failed", http.StatusInternalServerError)
+		return
+	}
+
+	// Create the API key with hab_live_ prefix
+	plainKey := "hab_live_" + base64.RawURLEncoding.EncodeToString(keyBytes)
+
+	// Hash the key for storage
+	hash := sha256.Sum256([]byte(plainKey))
+	keyHash := fmt.Sprintf("%x", hash)
+
+	// Store the hashed key with the user's ID
+	if err := s.store.PutAPIKey(keyHash, user.UserID); err != nil {
+		logger.Error("Failed to store API key", "error", err, "userID", user.UserID)
+		http.Error(w, "failed to store key", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info("Generated new API key", "userID", user.UserID, "keyHash", keyHash[:16]+"...")
+
+	// Return the plaintext key - this is the only time it will be shown
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"api_key": plainKey,
+		"message": "Save this key securely - it cannot be retrieved later",
+	})
+}
+
+// listAPIKeys returns metadata about the user's API keys (without the actual keys)
+func (s *Server) listAPIKeys(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value(userCtxKey{}).(*User)
+	if !ok || user == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	keyHashes, err := s.store.ListAPIKeyHashes(user.UserID)
+	if err != nil {
+		logger.Error("Failed to list API keys", "error", err, "userID", user.UserID)
+		http.Error(w, "failed to list keys", http.StatusInternalServerError)
+		return
+	}
+
+	// Return key metadata (hashes as identifiers, no plaintext keys)
+	type KeyInfo struct {
+		KeyID string `json:"key_id"`
+	}
+
+	keys := make([]KeyInfo, len(keyHashes))
+	for i, hash := range keyHashes {
+		keys[i] = KeyInfo{
+			KeyID: hash[:16] + "...", // Truncated hash for display
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"keys": keys,
+	})
+}
+
+// deleteAPIKey revokes a specific API key
+func (s *Server) deleteAPIKey(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value(userCtxKey{}).(*User)
+	if !ok || user == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	keyHash := chi.URLParam(r, "keyHash")
+	if keyHash == "" {
+		http.Error(w, "missing key hash", http.StatusBadRequest)
+		return
+	}
+
+	// Verify this key belongs to the authenticated user before deleting
+	userID, found, err := s.store.GetAPIKey(keyHash)
+	if err != nil {
+		logger.Error("Failed to lookup API key for deletion", "error", err)
+		http.Error(w, "failed to lookup key", http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
+		http.Error(w, "key not found", http.StatusNotFound)
+		return
+	}
+
+	if userID != user.UserID {
+		logger.Warn("User attempted to delete another user's API key", "userID", user.UserID, "targetUserID", userID)
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := s.store.DeleteAPIKey(keyHash); err != nil {
+		logger.Error("Failed to delete API key", "error", err, "keyHash", keyHash[:16]+"...")
+		http.Error(w, "failed to delete key", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info("Deleted API key", "userID", user.UserID, "keyHash", keyHash[:16]+"...")
+	w.WriteHeader(http.StatusNoContent)
 }

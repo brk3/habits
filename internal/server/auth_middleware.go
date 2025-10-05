@@ -16,6 +16,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const sessionMaxAge = 21 * 24 * time.Hour // 3 weeks
+
 type userCtxKey struct{}
 
 type User struct {
@@ -75,7 +77,7 @@ func ConfigureOIDCProviders(cfg *config.Config) (map[string]*AuthProvider, *secu
 	copy(hashKey[32:], h2[:])
 	copy(blockKey[:], b[:])
 	sessionCookie := securecookie.New(hashKey[:], blockKey[:])
-	sessionCookie.MaxAge(259200) // 3 days
+	sessionCookie.MaxAge(int(sessionMaxAge.Seconds()))
 
 	for i := range cfg.OIDCProviders {
 		cfgprov := cfg.OIDCProviders[i]
@@ -141,10 +143,26 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			logger.Debug("No session cookie found", "error", err)
 		}
 
-		// 2) Try Bearer token if no valid session cookie
+		// 2) Try API key or Bearer token if no valid session cookie
 		if rawIDToken == "" {
 			if ah := r.Header.Get("Authorization"); strings.HasPrefix(ah, "Bearer ") {
 				token := strings.TrimPrefix(ah, "Bearer ")
+
+				// Check if this is an API key (hab_live_ or hab_test_ prefix)
+				if strings.HasPrefix(token, "hab_") {
+					logger.Debug("Found API key in Authorization header")
+					if user, authenticated := s.authenticateAPIKey(r.Context(), token); authenticated {
+						logger.Debug("API key authentication successful", "userID", user.UserID)
+						RecordAuthEvent("verification", "success", "apikey")
+						next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userCtxKey{}, user)))
+						return
+					}
+					logger.Debug("API key authentication failed")
+					RecordAuthEvent("verification", "failed", "apikey")
+					s.handleAuthFailure(w, r, false)
+					return
+				}
+
 				// Parse provider-prefixed token: "provider:jwt"
 				if parsedProviderID, parsedToken, err := parseProviderToken(token); err == nil {
 					if _, exists := s.authProviders[parsedProviderID]; exists {
@@ -197,7 +215,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 							HttpOnly: true,
 							Secure:   true,
 							SameSite: http.SameSiteLaxMode,
-							MaxAge:   int((3 * 24 * time.Hour).Seconds()),
+							MaxAge:   int(sessionMaxAge.Seconds()),
 						})
 					}
 					idTok = newIdTok
@@ -409,4 +427,35 @@ func (s *Server) tryRefreshToken(ctx context.Context, providerID, expiredIDToken
 
 	logger.Debug("Successfully refreshed token for user", "userID", userID)
 	return newIDToken, true
+}
+
+// authenticateAPIKey validates an API key and returns the associated User
+func (s *Server) authenticateAPIKey(ctx context.Context, apiKey string) (*User, bool) {
+	// Hash the API key to look it up in storage
+	hash := sha256.Sum256([]byte(apiKey))
+	keyHash := fmt.Sprintf("%x", hash)
+
+	logger.Debug("Looking up API key", "keyHash", keyHash[:16]+"...")
+
+	userID, found, err := s.store.GetAPIKey(keyHash)
+	if err != nil {
+		logger.Error("Failed to lookup API key", "error", err)
+		return nil, false
+	}
+
+	if !found {
+		logger.Debug("API key not found in storage")
+		return nil, false
+	}
+
+	// Create a minimal User with just the userID
+	// API keys don't have email or subject from OIDC
+	user := &User{
+		UserID:  userID,
+		Subject: "apikey:" + keyHash[:16], // Include partial hash for logging
+		Email:   "",
+		Claims:  map[string]any{"auth_method": "api_key"},
+	}
+
+	return user, true
 }

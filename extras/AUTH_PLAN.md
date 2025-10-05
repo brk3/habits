@@ -133,12 +133,35 @@ All paths converge to `User{UserID, Email, ...}` in request context.
 
 ## Status
 
-- [ ] Task 1: Fix TokenStore TTL
-- [ ] Task 2: X-Refreshed-Token header
-- [ ] Task 3: API key storage
-- [ ] Task 4: API key auth middleware
-- [ ] Task 5: API key generation endpoint
-- [ ] Task 6: API key management endpoints
-- [ ] Task 7: Test OIDC refresh
-- [ ] Task 8: Test API key flow
-- [ ] Task 9: Persist TokenStore
+- [x] Task 1: Fix TokenStore TTL
+- [x] Task 2: X-Refreshed-Token header
+- [x] Task 3: API key storage
+- [x] Task 4: API key auth middleware
+- [x] Task 5: API key generation endpoint
+- [x] Task 6: API key management endpoints
+- [x] Task 7: Test OIDC refresh
+- [x] Task 8: Test API key flow
+- [x] Task 9: Persist TokenStore (Phase 4)
+
+---
+
+## Implementation Complete ✓
+
+All phases (1-4) have been successfully implemented:
+
+1. **Phase 1**: OIDC refresh token handling improved (90-day TTL, X-Refreshed-Token header)
+2. **Phase 2**: API key authentication system (`hab_live_*` keys) with generation and management endpoints
+3. **Phase 3**: Testing and validation completed (builds pass, all tests pass)
+4. **Phase 4**: TokenStore persistence to BoltDB (survives server restarts)
+
+### Next Steps for Production Use
+
+1. **Configure OIDC Provider**: Add your OIDC provider details to `config.yaml`
+2. **Generate API Keys**:
+   - Login via web at `http://localhost:8080/auth/login`
+   - POST to `/auth/api_keys` to generate a new key
+   - Save the returned `hab_live_*` key securely
+3. **Use API Keys**:
+   - In `config.yaml`: `bearer_token: hab_live_xxx`
+   - As HTTP header: `Authorization: Bearer hab_live_xxx`
+4. **Test Refresh Tokens**: Verify tokens persist across server restarts

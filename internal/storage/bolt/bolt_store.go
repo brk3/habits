@@ -11,6 +11,7 @@ import (
 	"github.com/brk3/habits/internal/storage"
 	"github.com/brk3/habits/pkg/habit"
 	"go.etcd.io/bbolt"
+	"golang.org/x/oauth2"
 )
 
 const rootBucket = "users"
@@ -284,6 +285,85 @@ func (s *Store) DeleteAPIKey(keyHash string) error {
 			return fmt.Errorf("api_keys bucket not found")
 		}
 		return bucket.Delete([]byte(keyHash))
+	})
+}
+
+func (s *Store) ensureRefreshTokenBucketExists() error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		rootBucket := tx.Bucket([]byte(rootBucket))
+		if rootBucket == nil {
+			return fmt.Errorf("root bucket does not exist")
+		}
+
+		_, err := rootBucket.CreateBucketIfNotExists([]byte("refresh_tokens"))
+		return err
+	})
+}
+
+func (s *Store) PutRefreshToken(userID string, token *oauth2.Token) error {
+	if err := s.ensureRefreshTokenBucketExists(); err != nil {
+		return fmt.Errorf("failed to ensure refresh token bucket exists: %w", err)
+	}
+
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(rootBucket)).Bucket([]byte("refresh_tokens"))
+		if bucket == nil {
+			return fmt.Errorf("refresh_tokens bucket not found")
+		}
+
+		tokenBytes, err := json.Marshal(token)
+		if err != nil {
+			return fmt.Errorf("failed to marshal token: %w", err)
+		}
+
+		err = bucket.Put([]byte(userID), tokenBytes)
+		if err != nil {
+			return fmt.Errorf("failed to store refresh token: %w", err)
+		}
+
+		logger.Debug("Refresh token stored", "userID", userID)
+		return nil
+	})
+}
+
+func (s *Store) GetRefreshToken(userID string) (*oauth2.Token, bool, error) {
+	if err := s.ensureRefreshTokenBucketExists(); err != nil {
+		return nil, false, fmt.Errorf("failed to ensure refresh token bucket exists: %w", err)
+	}
+
+	var token *oauth2.Token
+	var found bool
+	err := s.db.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(rootBucket)).Bucket([]byte("refresh_tokens"))
+		if bucket == nil {
+			return fmt.Errorf("refresh_tokens bucket not found")
+		}
+
+		tokenBytes := bucket.Get([]byte(userID))
+		if tokenBytes != nil {
+			token = &oauth2.Token{}
+			if err := json.Unmarshal(tokenBytes, token); err != nil {
+				return fmt.Errorf("failed to unmarshal token: %w", err)
+			}
+			found = true
+		}
+		return nil
+	})
+
+	return token, found, err
+}
+
+func (s *Store) DeleteRefreshToken(userID string) error {
+	if err := s.ensureRefreshTokenBucketExists(); err != nil {
+		return fmt.Errorf("failed to ensure refresh token bucket exists: %w", err)
+	}
+
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(rootBucket)).Bucket([]byte("refresh_tokens"))
+		if bucket == nil {
+			return fmt.Errorf("refresh_tokens bucket not found")
+		}
+		return bucket.Delete([]byte(userID))
 	})
 }
 

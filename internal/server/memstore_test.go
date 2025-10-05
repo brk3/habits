@@ -5,18 +5,21 @@ import (
 
 	"github.com/brk3/habits/internal/storage"
 	"github.com/brk3/habits/pkg/habit"
+	"golang.org/x/oauth2"
 )
 
 type memStore struct {
-	mu      sync.RWMutex
-	habits  map[string][]habit.Habit
-	apiKeys map[string]string
+	mu            sync.RWMutex
+	habits        map[string][]habit.Habit
+	apiKeys       map[string]string
+	refreshTokens map[string]*oauth2.Token
 }
 
 func newMemStore() *memStore {
 	return &memStore{
-		habits:  map[string][]habit.Habit{},
-		apiKeys: map[string]string{},
+		habits:        map[string][]habit.Habit{},
+		apiKeys:       map[string]string{},
+		refreshTokens: map[string]*oauth2.Token{},
 	}
 }
 
@@ -100,6 +103,30 @@ func (m *memStore) DeleteAPIKey(keyHash string) error {
 	defer m.mu.Unlock()
 
 	delete(m.apiKeys, keyHash)
+	return nil
+}
+
+func (m *memStore) PutRefreshToken(userID string, token *oauth2.Token) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.refreshTokens[userID] = token
+	return nil
+}
+
+func (m *memStore) GetRefreshToken(userID string) (*oauth2.Token, bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	token, found := m.refreshTokens[userID]
+	return token, found, nil
+}
+
+func (m *memStore) DeleteRefreshToken(userID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	delete(m.refreshTokens, userID)
 	return nil
 }
 
