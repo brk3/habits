@@ -114,7 +114,9 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 
 		userID := userIDFromClaims(claims)
 		if userID != "" {
-			s.tokenStore.Put(userID, tok)
+			if err := s.store.PutRefreshToken(userID, tok); err != nil {
+				logger.Error("Failed to persist refresh token", "userID", userID, "error", err)
+			}
 			logger.Debug("Stored oauth2 token for user", "userID", userID, "hasRefresh", tok.RefreshToken != "", "expiry", tok.Expiry)
 		} else {
 			logger.Debug("Failed to calculate userID from claims")
@@ -223,7 +225,6 @@ func (s *Server) generateAPIKey(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// listAPIKeys returns metadata about the user's API keys (without the actual keys)
 func (s *Server) listAPIKeys(w http.ResponseWriter, r *http.Request) {
 	user, ok := r.Context().Value(userCtxKey{}).(*User)
 	if !ok || user == nil {
@@ -238,7 +239,6 @@ func (s *Server) listAPIKeys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return key metadata (hashes as identifiers, no plaintext keys)
 	type KeyInfo struct {
 		KeyID string `json:"key_id"`
 	}
@@ -246,7 +246,7 @@ func (s *Server) listAPIKeys(w http.ResponseWriter, r *http.Request) {
 	keys := make([]KeyInfo, len(keyHashes))
 	for i, hash := range keyHashes {
 		keys[i] = KeyInfo{
-			KeyID: truncateHash(hash), // Truncated hash for display
+			KeyID: truncateHash(hash),
 		}
 	}
 
@@ -270,7 +270,6 @@ func (s *Server) deleteAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify this key belongs to the authenticated user before deleting
 	userID, found, err := s.store.GetAPIKey(keyHash)
 	if err != nil {
 		logger.Error("Failed to lookup API key for deletion", "error", err)

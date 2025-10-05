@@ -52,7 +52,6 @@ func TestAPIKeyGeneration(t *testing.T) {
 		t.Fatalf("API key has wrong prefix: %s", apiKey)
 	}
 
-	// Verify it was stored
 	hash := sha256.Sum256([]byte(apiKey))
 	keyHash := fmt.Sprintf("%x", hash)
 	storedUserID, found, err := store.GetAPIKey(keyHash)
@@ -72,7 +71,6 @@ func TestAPIKeyAuthentication(t *testing.T) {
 	store := newMemStore()
 	h := newTestServerWithAuth(t, store)
 
-	// Generate and store an API key
 	apiKey := "hab_live_test123456789012345678901234"
 	hash := sha256.Sum256([]byte(apiKey))
 	keyHash := fmt.Sprintf("%x", hash)
@@ -87,14 +85,12 @@ func TestAPIKeyAuthentication(t *testing.T) {
 		t.Fatalf("failed to store API key: %v", err)
 	}
 
-	// Make a request with the API key
 	req := httptest.NewRequest(http.MethodGet, "/habits/", nil)
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
 
-	// Should succeed (200 for empty list)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("got status %d, want 200, body: %s", rr.Code, rr.Body.String())
 	}
@@ -105,7 +101,6 @@ func TestAPIKeyAuthentication_InvalidKey(t *testing.T) {
 	store := newMemStore()
 	h := newTestServerWithAuth(t, store)
 
-	// Make a request with an invalid API key
 	req := httptest.NewRequest(http.MethodGet, "/habits/", nil)
 	req.Header.Set("Authorization", "Bearer hab_live_invalid_key_not_in_db")
 	req.Header.Set("Accept", "application/json")
@@ -123,7 +118,6 @@ func TestAPIKeyAuthentication_WrongPrefix(t *testing.T) {
 	store := newMemStore()
 	h := newTestServerWithAuth(t, store)
 
-	// Make a request with a Bearer token that's not an API key
 	req := httptest.NewRequest(http.MethodGet, "/habits/", nil)
 	req.Header.Set("Authorization", "Bearer some_random_token")
 	req.Header.Set("Accept", "application/json")
@@ -131,7 +125,6 @@ func TestAPIKeyAuthentication_WrongPrefix(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
 
-	// Should fail (not a valid OIDC token either)
 	if rr.Code != http.StatusUnauthorized {
 		t.Fatalf("got status %d, want 401", rr.Code)
 	}

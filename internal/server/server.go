@@ -2,8 +2,6 @@ package server
 
 import (
 	"net/http"
-	"sync"
-	"time"
 
 	"github.com/brk3/habits/internal/config"
 	"github.com/brk3/habits/internal/logger"
@@ -23,15 +21,6 @@ type Server struct {
 	authProviders map[string]*AuthProvider
 	cfg           *config.Config
 	sessionCookie *securecookie.SecureCookie
-	tokenStore    *TokenStore
-}
-
-// TokenStore wraps both in-memory cache and persistent storage
-type TokenStore struct {
-	ttl   time.Duration
-	mu    sync.RWMutex
-	m     map[string]*StoredToken
-	store storage.Store
 }
 
 type AuthProvider struct {
@@ -45,9 +34,8 @@ type AuthProvider struct {
 func New(cfg *config.Config, store storage.Store) (*Server, error) {
 	logger.Info("Initializing server", "auth_enabled", cfg.AuthEnabled)
 	srv := &Server{
-		store:      store,
-		cfg:        cfg,
-		tokenStore: NewTokenStore(24*time.Hour, store), // 24 hour cleanup - aligns with typical OIDC refresh token lifetimes
+		store: store,
+		cfg:   cfg,
 	}
 
 	if cfg.AuthEnabled {
@@ -104,109 +92,4 @@ func (s *Server) Router() http.Handler {
 	})
 
 	return r
-}
-
-type StoredToken struct {
-	Token    *oauth2.Token
-	ExpireAt time.Time
-}
-
-func NewTokenStore(ttl time.Duration, store storage.Store) *TokenStore {
-	s := &TokenStore{
-		ttl:   ttl,
-		m:     make(map[string]*StoredToken),
-		store: store,
-	}
-
-	// Start janitor for in-memory cleanup
-	go func() {
-		ticker := time.NewTicker(time.Hour)
-		defer ticker.Stop()
-		for range ticker.C {
-			now := time.Now()
-			s.mu.Lock()
-			for k, v := range s.m {
-				if now.After(v.ExpireAt) {
-					delete(s.m, k)
-					logger.Debug("Cleaned up expired token from memory", "userID", k)
-				}
-			}
-			s.mu.Unlock()
-		}
-	}()
-
-	logger.Info("TokenStore initialized with persistent storage")
-	return s
-}
-
-func (ts *TokenStore) Put(userID string, token *oauth2.Token) {
-	stored := &StoredToken{
-		Token:    token,
-		ExpireAt: time.Now().Add(ts.ttl),
-	}
-
-	// Store in memory
-	ts.mu.Lock()
-	ts.m[userID] = stored
-	ts.mu.Unlock()
-
-	// Persist to storage
-	if ts.store != nil {
-		if err := ts.store.PutRefreshToken(userID, token); err != nil {
-			logger.Error("Failed to persist refresh token", "userID", userID, "error", err)
-		} else {
-			logger.Debug("Refresh token persisted to storage", "userID", userID)
-		}
-	}
-}
-
-func (ts *TokenStore) Get(userID string) (*oauth2.Token, bool) {
-	// Try memory first
-	ts.mu.RLock()
-	stored, ok := ts.m[userID]
-	ts.mu.RUnlock()
-
-	if ok && time.Now().Before(stored.ExpireAt) {
-		logger.Debug("Token retrieved from memory cache", "userID", userID)
-		return stored.Token, true
-	}
-
-	// Fall back to persistent storage
-	if ts.store != nil {
-		token, found, err := ts.store.GetRefreshToken(userID)
-		if err != nil {
-			logger.Error("Failed to retrieve token from storage", "userID", userID, "error", err)
-			return nil, false
-		}
-		if found {
-			// Populate memory cache
-			ts.mu.Lock()
-			ts.m[userID] = &StoredToken{
-				Token:    token,
-				ExpireAt: time.Now().Add(ts.ttl),
-			}
-			ts.mu.Unlock()
-			logger.Debug("Token retrieved from persistent storage", "userID", userID)
-			return token, true
-		}
-	}
-
-	logger.Debug("No token found in memory or storage", "userID", userID)
-	return nil, false
-}
-
-func (ts *TokenStore) Delete(userID string) {
-	// Delete from memory
-	ts.mu.Lock()
-	delete(ts.m, userID)
-	ts.mu.Unlock()
-
-	// Delete from persistent storage
-	if ts.store != nil {
-		if err := ts.store.DeleteRefreshToken(userID); err != nil {
-			logger.Error("Failed to delete refresh token from storage", "userID", userID, "error", err)
-		} else {
-			logger.Debug("Refresh token deleted from storage", "userID", userID)
-		}
-	}
 }

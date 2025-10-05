@@ -381,7 +381,11 @@ func (s *Server) tryRefreshToken(ctx context.Context, providerID, expiredIDToken
 
 	logger.Debug("Looking for stored token", "userID", userID)
 
-	storedToken, exists := s.tokenStore.Get(userID)
+	storedToken, exists, err := s.store.GetRefreshToken(userID)
+	if err != nil {
+		logger.Error("Failed to retrieve token from storage", "userID", userID, "error", err)
+		return "", false
+	}
 	if !exists {
 		logger.Debug("No stored token found for user", "userID", userID)
 		return "", false
@@ -396,14 +400,18 @@ func (s *Server) tryRefreshToken(ctx context.Context, providerID, expiredIDToken
 	freshToken, err := tokenSource.Token()
 	if err != nil {
 		logger.Debug("Token refresh failed", "error", err, "userID", userID)
-		s.tokenStore.Delete(userID) // Remove invalid token
+		if delErr := s.store.DeleteRefreshToken(userID); delErr != nil {
+			logger.Error("Failed to delete refresh token", "userID", userID, "error", delErr)
+		}
 		return "", false
 	}
 
 	logger.Debug("Token refresh succeeded", "userID", userID, "newExpiry", freshToken.Expiry, "tokenChanged", freshToken.AccessToken != storedToken.AccessToken)
 
 	// Update stored token (TokenSource may have refreshed it)
-	s.tokenStore.Put(userID, freshToken)
+	if err := s.store.PutRefreshToken(userID, freshToken); err != nil {
+		logger.Error("Failed to persist refresh token", "userID", userID, "error", err)
+	}
 
 	newIDToken, ok := freshToken.Extra("id_token").(string)
 	if !ok || newIDToken == "" {
