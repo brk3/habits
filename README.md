@@ -3,8 +3,8 @@
 Habits is built on the idea that small, consistent actions yield the best results.
 
 [![Test Status](https://github.com/brk3/habits/actions/workflows/test.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/test.yml)
-[![Docker Build](https://github.com/brk3/habits/actions/workflows/docker-latest.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/docker.yml)
-[![Frontend Build](https://github.com/brk3/habits/actions/workflows/frontend-docker-latest.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/frontend.yml)
+[![Docker Build](https://github.com/brk3/habits/actions/workflows/docker-latest.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/docker-latest.yml)
+[![Frontend Build](https://github.com/brk3/habits/actions/workflows/frontend-docker-latest.yml/badge.svg)](https://github.com/brk3/habits/actions/workflows/frontend-docker-latest.yml)
 
 ![Screenshot](./extras/screenshot.png)
 
