@@ -4,7 +4,7 @@ BUILD    ?= $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 LDFLAGS  := -X 'github.com/brk3/habits/pkg/versioninfo.Version=$(VERSION)' -X 'github.com/brk3/habits/pkg/versioninfo.BuildDate=$(BUILD)'
 BIN_DIR  := dist
 
-.PHONY: all build test fmt vet lint clean server frontend
+.PHONY: all build test fmt vet lint clean server frontend docker-up docker-down docker-restart docker-logs
 
 all: fmt vet lint test build
 
@@ -45,3 +45,18 @@ server:
 
 frontend:
 	cd frontend && npm run dev
+
+# Docker compose commands for extras stack
+docker-up:
+	docker compose -f extras/docker-compose.yml up -d
+
+docker-down:
+	docker compose -f extras/docker-compose.yml down
+
+docker-restart:
+	docker compose -f extras/docker-compose.yml down
+	docker compose -f extras/docker-compose.yml pull
+	docker compose -f extras/docker-compose.yml up -d
+
+docker-logs:
+	docker compose -f extras/docker-compose.yml logs -f
