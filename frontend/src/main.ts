@@ -12,47 +12,47 @@ function initializeBodyStyles() {
 function drawHabitSummary(habit: string) {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="max-w-5xl mx-auto p-6">
-      <div class="flex justify-between items-center mb-6">
-        <div id="title" class="text-3xl font-bold text-gray-900 dark:text-white">${toTitleCase(habit)}</div>
+      <div class="flex justify-between items-center mb-8">
+        <div id="title" class="text-4xl font-bold text-gray-900 dark:text-white">${toTitleCase(habit)}</div>
         ${createThemeToggle()}
       </div>
 
       <!-- Top row of 3 cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-lg dark:shadow-xl" data-stat="current-streak">
-          <div class="text-lg text-gray-700 dark:text-gray-300">Current Streak</div>
-          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        <div class="stat-card-streak p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="current-streak">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Current Streak</div>
+          <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-lg dark:shadow-xl" data-stat="longest-streak">
-          <div class="text-lg text-gray-700 dark:text-gray-300">Longest Streak</div>
-          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        <div class="stat-card-longest p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="longest-streak">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Longest Streak</div>
+          <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-lg dark:shadow-xl" data-stat="month-progress">
-          <div class="text-lg text-gray-700 dark:text-gray-300">This Month</div>
-          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        <div class="stat-card-month p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="month-progress">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">This Month</div>
+          <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
       </div>
 
       <!-- Second row of 3 cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-lg dark:shadow-xl" data-stat="total-days">
-          <div class="text-lg text-gray-700 dark:text-gray-300">Total Days Done</div>
-          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        <div class="stat-card-total p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="total-days">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Total Days Done</div>
+          <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-lg dark:shadow-xl" data-stat="best-month">
-          <div class="text-lg text-gray-700 dark:text-gray-300">Best Month</div>
-          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        <div class="stat-card-best p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="best-month">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Best Month</div>
+          <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-lg dark:shadow-xl" data-stat="first-logged">
-          <div class="text-lg text-gray-700 dark:text-gray-300">First Logged</div>
-          <div class="text-2xl font-bold text-gray-900 dark:text-white">0</div>
+        <div class="stat-card-first p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="first-logged">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">First Logged</div>
+          <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
       </div>
 
-      <div id="cal-heatmap" class="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-lg dark:shadow-xl flex justify-center"></div>
+      <div id="cal-heatmap" class="flex justify-center mb-6"></div>
 
       <!-- Entries list shown when clicking a day -->
-      <div id="habit-entries" class="hidden mt-4"></div>
+      <div id="habit-entries" class="hidden"></div>
     </div>
   `;
 
@@ -90,12 +90,12 @@ async function drawSummaryStats(id: string) {
 async function drawHabitsList() {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="max-w-5xl mx-auto p-6">
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">My Habits</h1>
+      <div class="flex justify-between items-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 dark:text-white">My Habits</h1>
         ${createThemeToggle()}
       </div>
       <div class="grid gap-4">
-        <div id="habits-list" class="bg-white dark:bg-gray-700 rounded-lg shadow-lg dark:shadow-xl divide-y dark:divide-gray-600">
+        <div id="habits-list" class="bg-white dark:bg-gray-800 rounded-xl shadow-md divide-y dark:divide-gray-700">
         </div>
       </div>
     </div>

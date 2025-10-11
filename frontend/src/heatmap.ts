@@ -19,7 +19,7 @@ async function showEntriesForDate(habit: string, timestamp: number) {
   if (!entriesContainer) return;
 
   // Show the container with card styling
-  entriesContainer.className = 'bg-white dark:bg-gray-700 p-6 rounded-lg shadow-lg dark:shadow-xl mt-4';
+  entriesContainer.className = 'bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 mt-6';
   entriesContainer.innerHTML = '<div class="text-gray-600 dark:text-gray-400">Loading...</div>';
 
   try {
@@ -43,8 +43,8 @@ async function showEntriesForDate(habit: string, timestamp: number) {
     }
 
     entriesContainer.innerHTML = `
-      <div class="space-y-2">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+      <div class="space-y-3">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
           ${formatDate(timestamp)}
         </h3>
         ${entriesForDay.map((entry: HabitEntry) => {
@@ -54,12 +54,12 @@ async function showEntriesForDate(habit: string, timestamp: number) {
             hour12: true
           });
           return `
-            <div class="bg-gray-50 dark:bg-gray-600 p-3 rounded">
-              <div class="flex items-start gap-3">
-                <span class="text-gray-500 dark:text-gray-400 text-sm font-medium min-w-[60px]">${entryTime}</span>
+            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <div class="flex items-start gap-4">
+                <span class="text-indigo-600 dark:text-indigo-400 text-sm font-semibold min-w-[70px] pt-0.5">${entryTime}</span>
                 <div class="flex-1">
                   ${entry.note && entry.note.trim() !== ''
-                    ? `<p class="text-gray-900 dark:text-white">${entry.note}</p>`
+                    ? `<p class="text-gray-900 dark:text-white leading-relaxed">${entry.note}</p>`
                     : `<p class="text-gray-500 dark:text-gray-400 italic">No note</p>`
                   }
                 </div>
@@ -153,7 +153,7 @@ async function drawHabitHeatmap(habit: string) {
   );
 
   // Add click handler to heatmap cells
-  cal.on('click', (event: any, timestamp: number, value: number) => {
+  cal.on('click', (_event: any, timestamp: number, value: number) => {
     if (value > 0) {
       showEntriesForDate(habit, timestamp);
     }
