@@ -47,9 +47,10 @@ async function drawHabitHeatmap(habit: string) {
       scale: {
         color: {
           range: darkMode
-            ? ['#374151', '#22c55e']
-            : ['#e5e7eb', '#22c55e'],
-          domain: [0, 1],
+            ? ['#374151', '#166534', '#22c55e', '#86efac']
+            : ['#e5e7eb', '#bbf7d0', '#4ade80', '#22c55e'],
+          type: 'threshold',
+          domain: [1, 2, 3],
         },
       },
     },
