@@ -1,11 +1,15 @@
-// API types
 export type HeatmapDatum = {
   t: number;       // timestamp in milliseconds (start of day)
   p: number;       // count
   v: string;       // habit name
 };
 
-// API functions
+export type HabitEntry = {
+  name: string;
+  note: string;
+  timestamp: number;
+};
+
 async function fetchHabit(habit: string): Promise<HeatmapDatum[]> {
   const res = await fetch(`/api/habits/${habit}`, { credentials: 'include' });
   const json = await res.json();
@@ -50,4 +54,13 @@ async function fetchVersionInfo(): Promise<{ Version: string; BuildDate: string 
   return res.json();
 }
 
-export { fetchHabit, fetchHabitSummary, fetchHabits, fetchVersionInfo };
+async function fetchHabitEntries(habit: string): Promise<HabitEntry[]> {
+  const res = await fetch(`/api/habits/${habit}`, { credentials: 'include' });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch habit entries: ${res.statusText}`);
+  }
+  const json = await res.json();
+  return json.entries;
+}
+
+export { fetchHabit, fetchHabitSummary, fetchHabits, fetchVersionInfo, fetchHabitEntries };

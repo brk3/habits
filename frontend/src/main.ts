@@ -50,6 +50,9 @@ function drawHabitSummary(habit: string) {
       </div>
 
       <div id="cal-heatmap" class="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-lg dark:shadow-xl flex justify-center"></div>
+
+      <!-- Entries list shown when clicking a day -->
+      <div id="habit-entries" class="hidden mt-4"></div>
     </div>
   `;
 
