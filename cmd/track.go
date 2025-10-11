@@ -18,7 +18,7 @@ var trackCmd = &cobra.Command{
 For example:
   habits track guitar "10 mins of major scales"
 
-This will store the habit along with the current timestamp.`,
+This will store the habit along with the current timestamp, or a custom Unix timestamp if provided.`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := strings.TrimSpace(args[0])
@@ -34,15 +34,25 @@ This will store the habit along with the current timestamp.`,
 			os.Exit(1)
 		}
 
-		track(name, note, cmd)
+		timestamp, err := cmd.Flags().GetInt64("timestamp")
+		if err != nil {
+			cmd.Printf("Error: invalid timestamp: %v\n", err)
+			os.Exit(1)
+		}
+		track(name, note, timestamp, cmd)
 	},
 }
 
-func track(name string, note string, cmd *cobra.Command) {
+func track(name string, note string, timestamp int64, cmd *cobra.Command) {
+	ts := timestamp
+	if ts == 0 {
+		ts = time.Now().Unix()
+	}
+
 	h := &habit.Habit{
 		Name:      name,
 		Note:      note,
-		TimeStamp: time.Now().Unix(),
+		TimeStamp: ts,
 	}
 	apiclient := apiclient.New(cfg.APIBaseURL, cfg.AuthToken)
 	err := apiclient.PutHabit(cmd.Context(), h)
@@ -55,4 +65,5 @@ func track(name string, note string, cmd *cobra.Command) {
 
 func init() {
 	rootCmd.AddCommand(trackCmd)
+	trackCmd.Flags().Int64("timestamp", 0, "Unix timestamp for the habit entry (defaults to current time)")
 }
