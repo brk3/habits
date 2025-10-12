@@ -19,15 +19,15 @@ function drawHabitSummary(habit: string) {
 
       <!-- Top row of 3 cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <div class="stat-card-streak p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="current-streak">
+        <div class="stat-card-streak p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" data-stat="current-streak">
           <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Current Streak</div>
           <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="stat-card-longest p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="longest-streak">
+        <div class="stat-card-longest p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" data-stat="longest-streak">
           <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Longest Streak</div>
           <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="stat-card-month p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="month-progress">
+        <div class="stat-card-month p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" data-stat="month-progress">
           <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">This Month</div>
           <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
@@ -35,16 +35,16 @@ function drawHabitSummary(habit: string) {
 
       <!-- Second row of 3 cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div class="stat-card-total p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="total-days">
-          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Total Days Done</div>
+        <div class="stat-card-total p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" data-stat="total-days">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Total Days</div>
           <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="stat-card-best p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="best-month">
+        <div class="stat-card-best p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" data-stat="best-month">
           <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Best Month</div>
           <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
-        <div class="stat-card-first p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700" data-stat="first-logged">
-          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">First Logged</div>
+        <div class="stat-card-last p-5 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" data-stat="last-logged">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Last Logged</div>
           <div class="text-3xl font-bold text-gray-900 dark:text-white">0</div>
         </div>
       </div>
@@ -81,10 +81,29 @@ async function drawSummaryStats(id: string) {
   updateStat('longest-streak', `${data.habit_summary.longest_streak} days`);
   updateStat('month-progress', computeDaysThisMonthAsPercentage(data.habit_summary.this_month));
   updateStat('total-days', data.habit_summary.total_days_done);
-  updateStat('best-month', intToMonth(data.habit_summary.best_month));
-  updateStat('first-logged', new Date(data.habit_summary.first_logged * 1000).toLocaleDateString('en-US', {
+  updateStat('best-month', `${intToMonth(data.habit_summary.best_month)} ${new Date().getFullYear()}`);
+  updateStat('last-logged', new Date(data.habit_summary.last_write * 1000).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric'
   }));
+
+  // Add faded styling to cards with 0 or empty values
+  const fadeCard = (statName: string, isEmpty: boolean) => {
+    const card = document.querySelector(`[data-stat="${statName}"]`);
+    if (card) {
+      if (isEmpty) {
+        card.classList.add('opacity-50');
+      } else {
+        card.classList.remove('opacity-50');
+      }
+    }
+  };
+
+  fadeCard('current-streak', data.habit_summary.current_streak === 0);
+  fadeCard('longest-streak', data.habit_summary.longest_streak === 0);
+  fadeCard('month-progress', data.habit_summary.this_month === 0);
+  fadeCard('total-days', data.habit_summary.total_days_done === 0);
+  fadeCard('best-month', data.habit_summary.best_month === 0);
+  fadeCard('last-logged', data.habit_summary.last_write === 0);
 }
 
 async function drawHabitsList() {

@@ -120,7 +120,7 @@ body {
   border-bottom: 1px solid #374151;
 }
 
-.stat-card-first {
+.stat-card-last {
   background: #ffffff;
   border-left: 2px solid #06b6d4;
   border-top: 1px solid #e5e7eb;
@@ -128,7 +128,7 @@ body {
   border-bottom: 1px solid #e5e7eb;
 }
 
-.dark .stat-card-first {
+.dark .stat-card-last {
   background: #1f2937;
   border-left: 2px solid #06b6d4;
   border-top: 1px solid #374151;
