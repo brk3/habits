@@ -43,30 +43,34 @@ async function showEntriesForDate(habit: string, timestamp: number) {
     }
 
     entriesContainer.innerHTML = `
-      <div class="space-y-3">
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+      <div>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
           ${formatDate(timestamp)}
         </h3>
-        ${entriesForDay.map((entry: HabitEntry) => {
-          const entryTime = new Date(entry.timestamp * 1000).toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          });
-          return `
-            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <div class="flex items-start gap-4">
-                <span class="text-indigo-600 dark:text-indigo-400 text-sm font-semibold min-w-[70px] pt-0.5">${entryTime}</span>
-                <div class="flex-1">
-                  ${entry.note && entry.note.trim() !== ''
-                    ? `<p class="text-gray-900 dark:text-white leading-relaxed">${entry.note}</p>`
-                    : `<p class="text-gray-500 dark:text-gray-400 italic">No note</p>`
-                  }
+        <div class="timeline-container">
+          ${entriesForDay.map((entry: HabitEntry, index: number) => {
+            const entryTime = new Date(entry.timestamp * 1000).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+            const isLast = index === entriesForDay.length - 1;
+            return `
+              <div class="timeline-item ${isLast ? 'timeline-item-last' : ''}">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                  <span class="timeline-time">${entryTime}</span>
+                  <div class="timeline-note">
+                    ${entry.note && entry.note.trim() !== ''
+                      ? `<p class="text-gray-900 dark:text-white leading-relaxed">${entry.note}</p>`
+                      : `<p class="text-gray-500 dark:text-gray-400 italic">No note</p>`
+                    }
+                  </div>
                 </div>
               </div>
-            </div>
-          `;
-        }).join('')}
+            `;
+          }).join('')}
+        </div>
       </div>
     `;
   } catch (error) {
