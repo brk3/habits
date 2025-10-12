@@ -12,17 +12,20 @@ function initializeBodyStyles() {
 function drawHabitSummary(habit: string) {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="max-w-5xl mx-auto p-6">
-      <div class="mb-4">
+      <div class="flex justify-between items-center mb-4">
         <a href="/" class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
           <span>All Habits</span>
         </a>
+        ${createThemeToggle()}
       </div>
       <div class="flex justify-between items-center mb-8">
         <div id="title" class="text-4xl font-bold text-gray-900 dark:text-white">${toTitleCase(habit)}</div>
-        ${createThemeToggle()}
+        <button id="track-habit-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+          Add Entry
+        </button>
       </div>
 
       <!-- Top row of 3 cards -->
@@ -70,6 +73,130 @@ function drawHabitSummary(habit: string) {
     // Refresh heatmap when theme changes
     drawHabitHeatmap(habit);
   });
+
+  // Setup Track Habit button
+  const trackBtn = document.querySelector('#track-habit-btn');
+  if (trackBtn) {
+    trackBtn.addEventListener('click', () => showTrackHabitForm(habit));
+  }
+}
+
+function showTrackHabitForm(habit: string) {
+  const isDark = document.documentElement.classList.contains('dark');
+
+  const colors = isDark ? {
+    cardBg: '#1f2937',
+    cardBorder: '#374151',
+    title: '#ffffff',
+    label: '#d1d5db',
+    inputBg: '#374151',
+    inputBorder: '#4b5563',
+    inputText: '#ffffff',
+    cancelBg: '#374151',
+    cancelText: '#d1d5db',
+    cancelBorder: '#4b5563',
+  } : {
+    cardBg: '#ffffff',
+    cardBorder: '#e5e7eb',
+    title: '#111827',
+    label: '#4b5563',
+    inputBg: '#ffffff',
+    inputBorder: '#d1d5db',
+    inputText: '#111827',
+    cancelBg: '#ffffff',
+    cancelText: '#4b5563',
+    cancelBorder: '#d1d5db',
+  };
+
+  const formHtml = `
+    <div id="track-form-overlay" class="fixed inset-0 flex items-center justify-center z-50" style="background-color: rgba(0, 0, 0, 0.5) !important;">
+      <div class="rounded-xl shadow-xl p-6 max-w-md w-full mx-4 border" style="background-color: ${colors.cardBg} !important; border-color: ${colors.cardBorder} !important;">
+        <h3 class="text-2xl font-bold mb-4" style="color: ${colors.title} !important;">Track ${toTitleCase(habit)}</h3>
+
+        <form id="track-habit-form">
+          <div class="mb-4">
+            <label for="note" class="block text-sm font-medium mb-2" style="color: ${colors.label} !important;">
+              Note (optional)
+            </label>
+            <textarea
+              id="note"
+              name="note"
+              rows="3"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style="background-color: ${colors.inputBg} !important; border-color: ${colors.inputBorder} !important; color: ${colors.inputText} !important;"
+              placeholder="Add a note about this entry..."
+            ></textarea>
+          </div>
+
+          <div class="flex gap-3 justify-end">
+            <button
+              type="button"
+              id="cancel-btn"
+              class="px-4 py-2 rounded-lg transition-colors border"
+              style="color: ${colors.cancelText} !important; border-color: ${colors.cancelBorder} !important; background-color: ${colors.cancelBg} !important;"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 font-medium rounded-lg transition-colors"
+              style="background-color: #2563eb !important; color: #ffffff !important;"
+            >
+              Track Now
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', formHtml);
+
+  const overlay = document.querySelector('#track-form-overlay');
+  const form = document.querySelector('#track-habit-form') as HTMLFormElement;
+  const cancelBtn = document.querySelector('#cancel-btn');
+
+  const closeForm = () => {
+    overlay?.remove();
+  };
+
+  cancelBtn?.addEventListener('click', closeForm);
+  overlay?.addEventListener('click', (e) => {
+    if (e.target === overlay) closeForm();
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const noteInput = document.querySelector('#note') as HTMLTextAreaElement;
+    const note = noteInput?.value || '';
+
+    try {
+      const response = await fetch('/api/habits/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: habit,
+          note: note,
+          timestamp: Math.floor(Date.now() / 1000), // Current time in seconds
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to track habit');
+      }
+
+      closeForm();
+
+      window.location.reload();
+    } catch (error) {
+      console.error('Error tracking habit:', error);
+      alert('Failed to track habit. Please try again.');
+    }
+  });
 }
 
 async function drawSummaryStats(id: string) {
@@ -94,7 +221,6 @@ async function drawSummaryStats(id: string) {
     year: 'numeric', month: 'short', day: 'numeric'
   }));
 
-  // Add faded styling to cards with 0 or empty values
   const fadeCard = (statName: string, isEmpty: boolean) => {
     const card = document.querySelector(`[data-stat="${statName}"]`);
     if (card) {
@@ -141,7 +267,6 @@ async function drawHabitsList() {
       return;
     }
 
-    // Fetch summaries for all habits
     const summaries = await Promise.all(
       habits.map(async habit => ({
         name: habit,
@@ -197,7 +322,6 @@ async function drawHabitFooter() {
 }
 
 async function main() {
-  // Initialize theme before anything else
   const storedTheme = getStoredTheme();
   applyTheme(storedTheme);
   initializeBodyStyles();

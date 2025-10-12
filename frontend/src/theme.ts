@@ -1,4 +1,3 @@
-// Theme management
 function getStoredTheme(): string {
   return localStorage.getItem('theme') || 'auto';
 }
