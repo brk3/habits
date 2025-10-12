@@ -12,6 +12,14 @@ function initializeBodyStyles() {
 function drawHabitSummary(habit: string) {
   document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="max-w-5xl mx-auto p-6">
+      <div class="mb-4">
+        <a href="/" class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>All Habits</span>
+        </a>
+      </div>
       <div class="flex justify-between items-center mb-8">
         <div id="title" class="text-4xl font-bold text-gray-900 dark:text-white">${toTitleCase(habit)}</div>
         ${createThemeToggle()}
