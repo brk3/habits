@@ -70,7 +70,7 @@ async function drawSummaryStats(id: string) {
   const updateStat = (stat: string, value: string | number) => {
     const container = document.querySelector(`[data-stat="${stat}"]`);
     if (container) {
-      const valueElement = container.querySelector('.text-2xl');
+      const valueElement = container.querySelector('.text-3xl');
       if (valueElement) {
         valueElement.textContent = value.toString();
       }
