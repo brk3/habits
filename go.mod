@@ -1,8 +1,6 @@
 module github.com/brk3/habits
 
-go 1.23.0
-
-toolchain go1.23.11
+go 1.24.0
 
 require (
 	github.com/coreos/go-oidc/v3 v3.15.0
@@ -26,7 +24,7 @@ require (
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
-	golang.org/x/crypto v0.36.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
