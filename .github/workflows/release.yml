@@ -30,7 +30,7 @@ jobs:
 
     - name: Build binaries
       run: |
-        make build-all
+        make build-all VERSION=${{ github.ref_name }}
         cp dist/habits-linux dist/habits-linux-amd64
 
     - name: Upload release assets
