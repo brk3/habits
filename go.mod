@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/coreos/go-oidc/v3 v3.15.0
-	github.com/go-chi/chi/v5 v5.2.2
+	github.com/go-chi/chi/v5 v5.2.4
 	github.com/gorilla/securecookie v1.1.2
 	github.com/prometheus/client_golang v1.23.0
 	github.com/resend/resend-go/v2 v2.23.0
