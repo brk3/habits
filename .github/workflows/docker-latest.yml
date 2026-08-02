@@ -1,4 +1,4 @@
-name: Docker Image Build (linux/arm64 only)
+name: Docker Image Build
 
 on:
   push:
@@ -47,8 +47,10 @@ jobs:
         with:
           go-version: '1.23'
 
-      - name: Build binary
-        run: make build-linux-arm64
+      - name: Build binaries
+        run: |
+          make build-linux build-linux-arm64
+          cp dist/habits-linux dist/habits-linux-amd64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -73,6 +75,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ steps.set-tag.outputs.tag }}

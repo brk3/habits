@@ -29,7 +29,9 @@ jobs:
       run: sudo apt-get install -y make
 
     - name: Build binaries
-      run: make build-all
+      run: |
+        make build-all
+        cp dist/habits-linux dist/habits-linux-amd64
 
     - name: Upload release assets
       uses: softprops/action-gh-release@v1
@@ -53,11 +55,34 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build and push Docker multi-arch image
+    - name: Build and push backend Docker multi-arch image
       uses: docker/build-push-action@v5
       with:
         context: .
-        platforms: linux/arm64
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: |
           ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install frontend dependencies
+      run: npm ci
+      working-directory: frontend
+
+    - name: Build frontend
+      run: npm run build
+      working-directory: frontend
+
+    - name: Build and push frontend Docker multi-arch image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend/
+        file: ./frontend/Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}-frontend:${{ github.ref_name }}

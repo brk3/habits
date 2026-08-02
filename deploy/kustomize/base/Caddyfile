@@ -1,0 +1,19 @@
+:80 {
+    @backend path /metrics /healthz /readyz /version /auth/*
+    handle @backend {
+        reverse_proxy http://habits-server:3000
+    }
+
+    @api path /api/*
+    handle @api {
+        uri strip_prefix /api
+        reverse_proxy http://habits-server:3000
+    }
+
+    handle {
+        root * /usr/share/caddy
+        encode zstd gzip
+        try_files {path} /index.html
+        file_server
+    }
+}

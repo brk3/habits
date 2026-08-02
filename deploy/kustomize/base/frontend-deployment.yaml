@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: habits-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: habits-frontend
+  template:
+    metadata:
+      labels:
+        app: habits-frontend
+    spec:
+      containers:
+        - name: habits-frontend
+          image: ghcr.io/brk3/habits-frontend:latest
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: caddyfile
+              mountPath: /etc/caddy/Caddyfile
+              subPath: Caddyfile
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+      volumes:
+        - name: caddyfile
+          configMap:
+            name: habits-frontend-caddyfile

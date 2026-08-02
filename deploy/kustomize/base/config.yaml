@@ -1,0 +1,7 @@
+auth_enabled: false
+db_path: /data/habits.db
+log_level: info
+
+server:
+  host: 0.0.0.0
+  port: 3000

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: habits-server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: habits-server
+  template:
+    metadata:
+      labels:
+        app: habits-server
+    spec:
+      securityContext:
+        fsGroup: 65532
+      containers:
+        - name: habits-server
+          image: ghcr.io/brk3/habits:latest
+          args: ["server"]
+          env:
+            - name: HABITS_CONFIG
+              value: /etc/habits/config.yaml
+          ports:
+            - name: http
+              containerPort: 3000
+          volumeMounts:
+            - name: config
+              mountPath: /etc/habits/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /version
+              port: http
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /version
+              port: http
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+      volumes:
+        - name: config
+          configMap:
+            name: habits-server-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: habits-server-data
