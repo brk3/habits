@@ -10,10 +10,10 @@
   },
   "devDependencies": {
     "typescript": "~5.8.3",
-    "vite": "^7.1.11"
+    "vite": "^8.2.0"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.12",
+    "@tailwindcss/vite": "^4.3.3",
     "cal-heatmap": "^4.2.4",
     "d3": "^7.9.0",
     "tailwindcss": "^4.1.12"
